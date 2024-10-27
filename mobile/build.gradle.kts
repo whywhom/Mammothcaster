@@ -25,10 +25,10 @@ plugins {
 
 android {
     compileSdk = libs.versions.compileSdk.get().toInt()
-    namespace = "com.mammoth.caster"
+    namespace = "com.example.jetcaster"
 
     defaultConfig {
-        applicationId = "com.mammoth.caster"
+        applicationId = "com.example.jetcaster"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
@@ -135,7 +135,7 @@ dependencies {
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
     implementation(projects.core.domain)
-    implementation(project(":glancewidget"))
+    implementation(projects.glancewidget)
     implementation(projects.core.domainTesting)
 
     coreLibraryDesugaring(libs.core.jdk.desugaring)

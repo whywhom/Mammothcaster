@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.mammoth.caster.core.domain.testing"
+    namespace = "com.example.jetcaster.core.domain.testing"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

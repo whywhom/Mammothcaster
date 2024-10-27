@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.mammoth.caster.core.data"
+    namespace = "com.example.jetcaster.core.data"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

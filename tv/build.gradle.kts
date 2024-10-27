@@ -23,11 +23,11 @@ plugins {
 }
 
 android {
-    namespace = "com.mammoth.caster.tv"
+    namespace = "com.example.jetcaster.tv"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.mammoth.caster"
+        applicationId = "com.example.jetcaster"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1

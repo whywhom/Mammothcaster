@@ -34,7 +34,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Mammothcaster"
+rootProject.name = "Jetcaster"
 include(
     ":mobile",
     ":core:data",

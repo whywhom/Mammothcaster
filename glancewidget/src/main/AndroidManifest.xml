@@ -3,7 +3,7 @@
 
     <application>
         <receiver
-            android:name="com.mammoth.caster.glancewidget.JetcasterAppWidgetReceiver"
+            android:name="com.example.jetcaster.glancewidget.JetcasterAppWidgetReceiver"
             android:enabled="true"
             android:label="@string/app_widget_description"
             android:exported="false">

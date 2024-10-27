@@ -6,7 +6,7 @@ plugins {
 
 // TODO(chris): Set up convention plugin
 android {
-  namespace = "com.mammoth.caster.core.designsystem"
+  namespace = "com.example.jetcaster.core.designsystem"
   compileSdk = libs.versions.compileSdk.get().toInt()
 
   defaultConfig {

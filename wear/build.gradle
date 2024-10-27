@@ -25,10 +25,10 @@ plugins {
 android {
     compileSdk 34
 
-    namespace "com.mammoth.caster"
+    namespace "com.example.jetcaster"
 
     defaultConfig {
-        applicationId "com.mammoth.caster"
+        applicationId "com.example.jetcaster"
         minSdk 26
         targetSdk 34
         versionCode 1

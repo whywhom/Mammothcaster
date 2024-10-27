@@ -7,7 +7,7 @@ plugins {
 
 android {
     compileSdk = libs.versions.compileSdk.get().toInt()
-    namespace = "com.mammoth.caster.core.domain"
+    namespace = "com.example.jetcaster.core.domain"
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
