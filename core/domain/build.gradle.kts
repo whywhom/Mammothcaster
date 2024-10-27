@@ -37,7 +37,6 @@ kotlin {
 dependencies {
     coreLibraryDesugaring(libs.core.jdk.desugaring)
     implementation(projects.core.data)
-    implementation(projects.core.dataTesting)
 
     // Dependency injection
     implementation(libs.androidx.hilt.navigation.compose)
