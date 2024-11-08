@@ -15,7 +15,10 @@ import com.mammoth.podcast.data.database.dao.PodcastCategoryEntryDao
 import com.mammoth.podcast.data.database.dao.PodcastFollowedEntryDao
 import com.mammoth.podcast.data.database.dao.PodcastsDao
 import com.mammoth.podcast.data.database.dao.TransactionRunner
+import com.mammoth.podcast.ui.player.EpisodePlayer
+import com.mammoth.podcast.ui.player.MockEpisodePlayer
 import com.rometools.rome.io.SyndFeedInput
+import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 
 /**
@@ -35,6 +38,7 @@ class MammothCastApp : Application() {
         lateinit var podcastStore: PodcastStore
         lateinit var categoryStore: CategoryStore
         lateinit var imageLoader: ImageLoader
+        lateinit var episodePlayer: EpisodePlayer
         val okHttpClient = OkHttpClient()
     }
     override fun onCreate() {
@@ -67,5 +71,6 @@ class MammothCastApp : Application() {
             // Disable `Cache-Control` header support as some podcast images disable disk caching.
             .respectCacheHeaders(false)
             .build()
+        episodePlayer = MockEpisodePlayer(Dispatchers.Main)
     }
 }

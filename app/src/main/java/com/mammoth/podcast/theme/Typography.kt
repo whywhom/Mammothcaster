@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.jetcaster.designsystem.theme
+package com.mammoth.podcast.theme
 
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily

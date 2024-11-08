@@ -3,7 +3,7 @@ package com.mammoth.podcast.theme
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.example.jetcaster.designsystem.theme.Montserrat
+import com.mammoth.podcast.theme.Montserrat
 
 val JetcasterTypography = androidx.compose.material3.Typography(
     displayLarge = TextStyle(

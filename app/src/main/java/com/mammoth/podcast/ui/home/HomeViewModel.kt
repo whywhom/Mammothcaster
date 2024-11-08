@@ -17,6 +17,8 @@ import com.mammoth.podcast.data.database.model.EpisodeToPodcast
 import com.mammoth.podcast.domain.model.CategoryInfo
 import com.mammoth.podcast.domain.model.asExternalModel
 import com.mammoth.podcast.domain.model.asPodcastToEpisodeInfo
+import com.mammoth.podcast.ui.player.EpisodePlayer
+import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import com.mammoth.podcast.util.combine
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
@@ -37,6 +39,7 @@ class HomeViewModel(
     private val episodeStore: EpisodeStore = MammothCastApp.episodeStore,
     private val podcastCategoryFilterUseCase: PodcastCategoryFilterUseCase = PodcastCategoryFilterUseCase(),
     private val filterableCategoriesUseCase: FilterableCategoriesUseCase = FilterableCategoriesUseCase(),
+    private val episodePlayer: EpisodePlayer = MammothCastApp.episodePlayer,
 ) : ViewModel() {
     // Holds the view state if the UI is refreshing for new data
     private val refreshing = MutableStateFlow(false)
@@ -149,6 +152,10 @@ class HomeViewModel(
 
     fun onLibraryPodcastSelected(podcast: PodcastInfo?) {
         selectedLibraryPodcast.value = podcast
+    }
+
+    fun onQueueEpisode(episode: PlayerEpisode) {
+        episodePlayer.addToQueue(episode)
     }
 }
 
