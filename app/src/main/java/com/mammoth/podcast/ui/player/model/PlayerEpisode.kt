@@ -1,5 +1,6 @@
 package com.mammoth.podcast.ui.player.model
 
+import androidx.room.ColumnInfo
 import com.mammoth.podcast.data.database.model.EpisodeToPodcast
 import com.mammoth.podcast.domain.model.EpisodeInfo
 import com.mammoth.podcast.domain.model.PodcastInfo
@@ -19,6 +20,10 @@ data class PlayerEpisode(
     val author: String = "",
     val summary: String = "",
     val podcastImageUrl: String = "",
+    val enclosureUrl: String? = null,
+    val enclosureLength: Long = 0,
+    val enclosureType: String? = null,
+
 ) {
     constructor(podcastInfo: PodcastInfo, episodeInfo: EpisodeInfo) : this(
         title = episodeInfo.title,
@@ -29,7 +34,10 @@ data class PlayerEpisode(
         author = episodeInfo.author,
         summary = episodeInfo.summary,
         podcastImageUrl = podcastInfo.imageUrl,
-        uri = episodeInfo.uri
+        uri = episodeInfo.uri,
+        enclosureUrl = episodeInfo.enclosureUrl,
+        enclosureLength = episodeInfo.enclosureLength,
+        enclosureType = episodeInfo.enclosureType,
     )
 }
 
@@ -44,4 +52,7 @@ fun EpisodeToPodcast.toPlayerEpisode(): PlayerEpisode =
         author = episode.author ?: podcast.author ?: "",
         summary = episode.summary ?: "",
         podcastImageUrl = podcast.imageUrl ?: "",
+        enclosureUrl = episode.enclosureUrl,
+        enclosureLength = episode.enclosureLength,
+        enclosureType = episode.enclosureType,
     )

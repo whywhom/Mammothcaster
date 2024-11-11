@@ -114,6 +114,12 @@ dependencies {
     implementation(libs.rometools.rome)
     implementation(libs.rometools.modules)
 
+    // Exoplayer
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.common)
+    implementation(libs.androidx.media3.session)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

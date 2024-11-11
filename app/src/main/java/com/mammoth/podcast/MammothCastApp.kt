@@ -1,6 +1,7 @@
 package com.mammoth.podcast
 
 import android.app.Application
+import android.content.Context
 import coil.ImageLoader
 import com.mammoth.podcast.data.repository.CategoryStore
 import com.mammoth.podcast.data.repository.EpisodeStore
@@ -26,6 +27,7 @@ import okhttp3.OkHttpClient
  */
 class MammothCastApp : Application() {
     companion object {
+        lateinit var appContext: Context
         lateinit var database: JetcasterDatabase
         lateinit var categoriesDao: CategoriesDao
         lateinit var podcastCategoryEntryDao: PodcastCategoryEntryDao
@@ -43,6 +45,7 @@ class MammothCastApp : Application() {
     }
     override fun onCreate() {
         super.onCreate()
+        appContext = this@MammothCastApp.applicationContext
         init()
     }
 
@@ -71,6 +74,6 @@ class MammothCastApp : Application() {
             // Disable `Cache-Control` header support as some podcast images disable disk caching.
             .respectCacheHeaders(false)
             .build()
-        episodePlayer = MockEpisodePlayer(Dispatchers.Main)
+        episodePlayer = MockEpisodePlayer(this@MammothCastApp.applicationContext, Dispatchers.Main)
     }
 }

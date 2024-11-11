@@ -1,5 +1,6 @@
 package com.mammoth.podcast.domain.model
 
+import androidx.room.ColumnInfo
 import com.mammoth.podcast.data.database.model.Episode
 import java.time.Duration
 import java.time.OffsetDateTime
@@ -15,6 +16,9 @@ data class EpisodeInfo(
     val author: String = "",
     val published: OffsetDateTime = OffsetDateTime.MIN,
     val duration: Duration? = null,
+    val enclosureUrl: String?,
+    val enclosureLength: Long = 0,
+    val enclosureType: String?
 )
 
 fun Episode.asExternalModel(): EpisodeInfo =
@@ -26,4 +30,7 @@ fun Episode.asExternalModel(): EpisodeInfo =
         author = author ?: "",
         published = published,
         duration = duration,
+        enclosureUrl = enclosureUrl,
+        enclosureLength = enclosureLength,
+        enclosureType = enclosureType
     )

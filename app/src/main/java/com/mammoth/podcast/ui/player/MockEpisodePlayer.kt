@@ -1,5 +1,12 @@
 package com.mammoth.podcast.ui.player
 
+import android.content.ComponentName
+import android.content.Context
+import androidx.media3.common.MediaItem
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.MoreExecutors
+import com.mammoth.podcast.MediaPlayerService
 import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import java.time.Duration
 import kotlin.reflect.KProperty
@@ -17,9 +24,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class MockEpisodePlayer(
+    context: Context,
     private val mainDispatcher: CoroutineDispatcher
 ) : EpisodePlayer {
 
+    private var player: MediaController? = null
     private val _playerState = MutableStateFlow(EpisodePlayerState())
     private val _currentEpisode = MutableStateFlow<PlayerEpisode?>(null)
     private val queue = MutableStateFlow<List<PlayerEpisode>>(emptyList())
@@ -54,6 +63,16 @@ class MockEpisodePlayer(
                 _playerState.value = it
             }
         }
+
+        /* Creating session token (links our UI with service and starts it) */
+        val sessionToken =
+            SessionToken(context, ComponentName(context, MediaPlayerService::class.java))
+        /* Instantiating our MediaController and linking it to the service using the session token */
+        val mediacontrollerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+
+        mediacontrollerFuture.addListener({
+            player = mediacontrollerFuture.get()
+        }, MoreExecutors.directExecutor())
     }
 
     override var playerSpeed: Duration = _playerSpeed.value
@@ -61,6 +80,7 @@ class MockEpisodePlayer(
     override val playerState: StateFlow<EpisodePlayerState> = _playerState.asStateFlow()
 
     override var currentEpisode: PlayerEpisode? by _currentEpisode
+
     override fun addToQueue(episode: PlayerEpisode) {
         queue.update {
             it + episode
@@ -95,6 +115,18 @@ class MockEpisodePlayer(
                 next()
             }
         }
+
+        episode.enclosureUrl?.let { url ->
+            // Build the media item.
+            val mediaItem = MediaItem.fromUri(url)
+            // Set the media item to be played.
+            player?.setMediaItem(mediaItem)
+            // Prepare the player.
+            player?.prepare()
+            // Start the playback.
+            player?.play()
+        }
+
     }
 
     override fun play(playerEpisode: PlayerEpisode) {

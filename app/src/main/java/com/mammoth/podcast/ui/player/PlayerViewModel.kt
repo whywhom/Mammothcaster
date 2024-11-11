@@ -1,21 +1,20 @@
 package com.mammoth.podcast.ui.player
 
-import android.net.Uri
+import android.annotation.SuppressLint
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mammoth.podcast.MammothCastApp
-import com.mammoth.podcast.Screen
 import com.mammoth.podcast.data.repository.EpisodeStore
 import com.mammoth.podcast.ui.player.model.toPlayerEpisode
-import java.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.Duration
 
 data class PlayerUiState(
     val episodePlayerState: EpisodePlayerState = EpisodePlayerState()
@@ -25,16 +24,13 @@ data class PlayerUiState(
  * ViewModel that handles the business logic and screen state of the Player screen
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@SuppressLint("StaticFieldLeak")
 class PlayerViewModel(
+    val context: Context,
     episodeStore: EpisodeStore = MammothCastApp.episodeStore,
     private val episodePlayer: EpisodePlayer = MammothCastApp.episodePlayer,
-    private val savedStateHandle: SavedStateHandle
+    episodeUri: String
 ) : ViewModel() {
-
-    // episodeUri should always be present in the PlayerViewModel.
-    // If that's not the case, fail crashing the app!
-    private val episodeUri: String =
-        Uri.decode(savedStateHandle.get<String>(Screen.ARG_EPISODE_URI)!!)
 
     var uiState by mutableStateOf(PlayerUiState())
         private set

@@ -265,7 +265,10 @@ val PreviewEpisodes = listOf(
         published = OffsetDateTime.of(
             2020, 6, 2, 9,
             27, 0, 0, ZoneOffset.of("-0800")
-        )
+        ),
+        enclosureUrl = null,
+        enclosureLength = 0,
+        enclosureType = null
     )
 )
 

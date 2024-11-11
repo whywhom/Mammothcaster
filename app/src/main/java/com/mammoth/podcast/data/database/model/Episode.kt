@@ -34,5 +34,8 @@ data class Episode(
     @ColumnInfo(name = "summary") val summary: String? = null,
     @ColumnInfo(name = "author") val author: String? = null,
     @ColumnInfo(name = "published") val published: OffsetDateTime,
-    @ColumnInfo(name = "duration") val duration: Duration? = null
+    @ColumnInfo(name = "duration") val duration: Duration? = null,
+    @ColumnInfo(name = "enclosure_url") val enclosureUrl: String?,
+    @ColumnInfo(name = "enclosure_length") val enclosureLength: Long,
+    @ColumnInfo(name = "enclosure_type") val enclosureType: String?
 )
