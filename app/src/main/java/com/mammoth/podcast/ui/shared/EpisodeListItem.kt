@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.PlayCircleFilled
 import androidx.compose.material3.Icon
@@ -146,6 +148,18 @@ private fun EpisodeListItemFooter(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                 contentDescription = stringResource(R.string.cd_add),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        IconButton(
+            onClick = {
+
+            },
+        ) {
+            Icon(
+                imageVector = if(episode.isDownloaded)Icons.Default.DownloadDone else Icons.Default.Download,
+                contentDescription = stringResource(R.string.cd_download),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

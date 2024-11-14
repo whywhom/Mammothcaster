@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class MockEpisodePlayer(
+class MammothEpisodePlayer(
     context: Context,
     private val mainDispatcher: CoroutineDispatcher
 ) : EpisodePlayer {
@@ -106,11 +106,9 @@ class MockEpisodePlayer(
                 delay(playerSpeed.toMillis())
                 timeElapsed.update { it + playerSpeed }
             }
-
             // Once done playing, see if
             isPlaying.value = false
             timeElapsed.value = Duration.ZERO
-
             if (hasNext()) {
                 next()
             }
@@ -126,7 +124,6 @@ class MockEpisodePlayer(
             // Start the playback.
             player?.play()
         }
-
     }
 
     override fun play(playerEpisode: PlayerEpisode) {
@@ -163,7 +160,7 @@ class MockEpisodePlayer(
 
     override fun pause() {
         isPlaying.value = false
-
+        player?.pause()
         timerJob?.cancel()
         timerJob = null
     }
@@ -181,6 +178,7 @@ class MockEpisodePlayer(
         timeElapsed.update {
             (it + duration).coerceAtMost(currentEpisodeDuration)
         }
+        player?.seekForward()
     }
 
     override fun rewindBy(duration: Duration) {

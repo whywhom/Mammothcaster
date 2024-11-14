@@ -18,7 +18,10 @@ data class EpisodeInfo(
     val duration: Duration? = null,
     val enclosureUrl: String?,
     val enclosureLength: Long = 0,
-    val enclosureType: String?
+    val enclosureType: String?,
+    val isDownloaded: Boolean = false,
+    val filePath: String? = null,
+    val downloadTime: Long = 0
 )
 
 fun Episode.asExternalModel(): EpisodeInfo =
@@ -32,5 +35,8 @@ fun Episode.asExternalModel(): EpisodeInfo =
         duration = duration,
         enclosureUrl = enclosureUrl,
         enclosureLength = enclosureLength,
-        enclosureType = enclosureType
+        enclosureType = enclosureType,
+        isDownloaded = isDownloaded,
+        filePath = filePath,
+        downloadTime = downloadTime
     )

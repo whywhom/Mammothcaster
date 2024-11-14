@@ -4,7 +4,7 @@ import com.mammoth.podcast.MammothCastApp
 import com.mammoth.podcast.data.database.dao.TransactionRunner
 import com.mammoth.podcast.data.network.PodcastRssResponse
 import com.mammoth.podcast.data.network.PodcastsFetcher
-import com.mammoth.podcast.data.network.SampleFeeds
+import com.mammoth.podcast.data.network.MammothFeeds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +35,7 @@ class PodcastsRepository(
 
             refreshingJob = scope.launch {
                 // Now fetch the podcasts, and add each to each store
-                podcastsFetcher(SampleFeeds)
+                podcastsFetcher(MammothFeeds)
                     .filter { it is PodcastRssResponse.Success }
                     .map { it as PodcastRssResponse.Success }
                     .collect { (podcast, episodes, categories) ->

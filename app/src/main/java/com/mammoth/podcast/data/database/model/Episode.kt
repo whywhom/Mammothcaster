@@ -37,5 +37,8 @@ data class Episode(
     @ColumnInfo(name = "duration") val duration: Duration? = null,
     @ColumnInfo(name = "enclosure_url") val enclosureUrl: String?,
     @ColumnInfo(name = "enclosure_length") val enclosureLength: Long,
-    @ColumnInfo(name = "enclosure_type") val enclosureType: String?
+    @ColumnInfo(name = "enclosure_type") val enclosureType: String?,
+    @ColumnInfo(name = "is_downloaded") val isDownloaded: Boolean,
+    @ColumnInfo(name = "filePath") val filePath: String?,
+    @ColumnInfo(name = "download_time") val downloadTime: Long,
 )

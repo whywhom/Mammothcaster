@@ -144,6 +144,9 @@ private fun SyndEntry.toEpisode(podcastUri: String): Episode {
         enclosureUrl = syndEnclosure?.url,
         enclosureLength = syndEnclosure?.length?:0,
         enclosureType = syndEnclosure?.type,
+        isDownloaded = false,
+        filePath = "",
+        downloadTime = 0
     )
 }
 
