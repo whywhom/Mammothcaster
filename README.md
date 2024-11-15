@@ -10,6 +10,12 @@
 
 - RSS解析：使用 Rome 从播客订阅源中解析数据。
 
+## Branches
+
+main - release app
+
+develop - developer merge branch to develop
+
 ## Home Screen
 
 ![](screenshots/homescreen.png)
