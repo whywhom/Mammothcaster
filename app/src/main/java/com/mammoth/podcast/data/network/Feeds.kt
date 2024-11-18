@@ -35,6 +35,9 @@ val BackupFeeds = listOf(
 val MammothFeeds = listOf(
     "https://access.acast.com/rss/ec380acc-fe13-46a0-991f-a1e508d126f8/default", // 郭德纲于谦相声精选
     "https://feed.xyzfm.space/mkkxu98dm89e", // 小Lin说
+    "https://feeds.megaphone.fm/thediaryofaceo", // The Diary of A CEO
+    "https://feeds.megaphone.fm/SIXMSB5088139739", // Modern Wisdom
+    "https://aezfm.meldingcloud.com/rss/program/46", // World Today
     "https://podcasts.files.bbci.co.uk/p02pc9tn.rss", // 6 Minute English
     "https://podcasts.files.bbci.co.uk/p02nq0gn.rss", // Global News Podcast
     "https://podcasts.files.bbci.co.uk/p002w557.rss", // Discovery
@@ -46,5 +49,4 @@ val MammothFeeds = listOf(
     "https://feeds.simplecast.com/_T63wIwi", // everybody-esl
     "https://feeds.publicradio.org/public_feeds/brains-on", // Brains on！Science podcast for kids
     "https://feeds.buzzsprout.com/1632526.rss", // The Geographical Podcast
-    "https://aezfm.meldingcloud.com/rss/program/46", // World Today
 )

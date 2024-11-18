@@ -1,7 +1,5 @@
 package com.mammoth.podcast.domain.model
 
-import com.mammoth.podcast.domain.model.CategoryInfo
-
 /**
  * Model holding a list of categories and a selected category in the collection
  */

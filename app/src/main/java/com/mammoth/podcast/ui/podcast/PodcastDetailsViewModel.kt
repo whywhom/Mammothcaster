@@ -1,4 +1,4 @@
-package com.example.jetcaster.ui.podcast
+package com.mammoth.podcast.ui.podcast
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel

@@ -1,6 +1,5 @@
 package com.mammoth.podcast.domain.model
 
-import androidx.room.ColumnInfo
 import com.mammoth.podcast.data.database.model.Episode
 import java.time.Duration
 import java.time.OffsetDateTime

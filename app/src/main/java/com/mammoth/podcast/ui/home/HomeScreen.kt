@@ -86,7 +86,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.mammoth.podcast.ui.podcast.PodcastDetailsScreen
-import com.example.jetcaster.ui.podcast.PodcastDetailsViewModel
+import com.mammoth.podcast.ui.podcast.PodcastDetailsViewModel
 import com.mammoth.podcast.R
 import com.mammoth.podcast.component.PodcastImage
 import com.mammoth.podcast.domain.model.CategoryInfo
@@ -145,7 +145,6 @@ private fun <T> ThreePaneScaffoldNavigator<T>.isMainPaneHidden(): Boolean {
  * Copied from `calculatePaneScaffoldDirective()` in [PaneScaffoldDirective], with modifications to
  * only show 1 pane horizontally if either width or height size class is compact.
  */
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 fun calculateScaffoldDirective(
     windowAdaptiveInfo: WindowAdaptiveInfo,
     verticalHingePolicy: HingePolicy = HingePolicy.AvoidSeparating

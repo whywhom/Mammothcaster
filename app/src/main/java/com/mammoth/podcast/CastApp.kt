@@ -25,13 +25,14 @@ import android.Manifest
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun CastApp(
     displayFeatures: List<DisplayFeature>,
-    appState: CastAppState = rememberJetcasterAppState()
+    appState: CastAppState = rememberMammothAppState()
 ) {
-    RequestNotificationPermissions()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        RequestNotificationPermissions()
+    }
     val adaptiveInfo = currentWindowAdaptiveInfo()
     if (appState.isOnline) {
         NavHost(
