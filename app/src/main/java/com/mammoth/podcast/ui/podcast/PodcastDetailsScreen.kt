@@ -51,8 +51,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.jetcaster.ui.podcast.PodcastDetailsViewModel
-import com.example.jetcaster.ui.podcast.PodcastUiState
 import com.mammoth.podcast.R
 import com.mammoth.podcast.component.PodcastImage
 import com.mammoth.podcast.domain.model.EpisodeInfo

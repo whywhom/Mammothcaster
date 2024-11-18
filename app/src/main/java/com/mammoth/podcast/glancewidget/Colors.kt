@@ -73,9 +73,6 @@ import com.mammoth.podcast.theme.tertiaryContainerLight
 import com.mammoth.podcast.theme.tertiaryDark
 import com.mammoth.podcast.theme.tertiaryLight
 
-/**
- * Todo, this is copied from the core module. Refactor colors out of that so we can reference them.
- */
 private val lightJetcasterColors = lightColorScheme(
     primary = primaryLight,
     onPrimary = onPrimaryLight,

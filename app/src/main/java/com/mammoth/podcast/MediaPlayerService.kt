@@ -22,12 +22,10 @@ class MediaPlayerService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-        // 初始化 ExoPlayer
+        // init ExoPlayer
         exoPlayer = ExoPlayer.Builder(this).build()
-        // 初始化 MediaSession
+        // init MediaSession
         mediaSession = MediaSession.Builder(this, exoPlayer).build()
-        // 设置通知
-//        startForegroundServiceWithNotification()
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -67,8 +65,8 @@ class MediaPlayerService : MediaSessionService() {
     }
 
     private fun startForegroundServiceWithNotification() {
-        // 连接 ExoPlayer 和 MediaSession
-        // 启动前台服务，使用内置通知提供器
+        // Connect ExoPlayer and MediaSession
+        // Start a foreground service using the built-in notification provider
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
     }

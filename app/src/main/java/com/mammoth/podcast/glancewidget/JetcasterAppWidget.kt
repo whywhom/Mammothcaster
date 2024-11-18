@@ -148,7 +148,9 @@ private fun WidgetUiNormal(
     imageUri: Uri,
     playPauseIcon: PlayPauseIcon,
 ) {
-    Scaffold(titleBar = {} /* title bar will be optional starting in glance 1.1.0-beta3*/) {
+    Scaffold(
+        titleBar = {} /* title bar will be optional starting in glance 1.1.0-beta3*/
+    ) {
         Row(
             GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Vertical.CenterVertically
         ) {
@@ -164,7 +166,9 @@ private fun WidgetUiNarrow(
     imageUri: Uri,
     playPauseIcon: PlayPauseIcon,
 ) {
-    Scaffold(titleBar = {} /* title bar will be optional in scaffold in glance 1.1.0-beta3*/) {
+    Scaffold(
+        titleBar = {} /* title bar will be optional in scaffold in glance 1.1.0-beta3*/
+    ) {
         Row(
             modifier = GlanceModifier.fillMaxSize(),
             verticalAlignment = Alignment.Vertical.CenterVertically
@@ -258,12 +262,12 @@ private fun WidgetAsyncImage(
         }
     }
 
-    bitmap?.let { bitmap ->
+    bitmap?.let {
         Image(
-            provider = ImageProvider(bitmap),
+            provider = ImageProvider(it),
             contentDescription = contentDescription,
             contentScale = ContentScale.FillBounds,
-            modifier = modifier.cornerRadius(12.dp) // TODO: confirm radius with design
+            modifier = modifier.cornerRadius(12.dp)
         )
     }
 }

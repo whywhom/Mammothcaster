@@ -9,9 +9,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
@@ -23,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mammoth.podcast.R
 import com.mammoth.podcast.domain.model.CategoryInfo
@@ -135,7 +135,6 @@ private fun PodcastCategoryTabs(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChoiceChipContent(
     text: String,
@@ -146,7 +145,7 @@ private fun ChoiceChipContent(
     // When adding onClick to Surface, it automatically makes this item higher.
     // On the other hand, adding .clickable modifier, doesn't use the same shape as Surface.
     // This way we disable the minimum height requirement
-    CompositionLocalProvider(value = LocalMinimumInteractiveComponentEnforcement provides false) {
+    CompositionLocalProvider(value = LocalMinimumInteractiveComponentSize provides Dp.Unspecified ) {
         Surface(
             color = when {
                 selected -> MaterialTheme.colorScheme.secondaryContainer
