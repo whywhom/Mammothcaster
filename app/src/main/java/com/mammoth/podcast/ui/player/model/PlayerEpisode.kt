@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import com.mammoth.podcast.data.database.model.EpisodeToPodcast
 import com.mammoth.podcast.domain.model.EpisodeInfo
 import com.mammoth.podcast.domain.model.PodcastInfo
+import com.mammoth.podcast.util.DownloadState
 import java.time.Duration
 import java.time.OffsetDateTime
 
@@ -23,7 +24,9 @@ data class PlayerEpisode(
     val enclosureUrl: String? = null,
     val enclosureLength: Long = 0,
     val enclosureType: String? = null,
-
+    val isDownloaded: Int = DownloadState.NOT_DOWNLOAD.value,
+    val filePath: String? = null,
+    val downloadTime: Long = 0
 ) {
     constructor(podcastInfo: PodcastInfo, episodeInfo: EpisodeInfo) : this(
         title = episodeInfo.title,
@@ -38,6 +41,9 @@ data class PlayerEpisode(
         enclosureUrl = episodeInfo.enclosureUrl,
         enclosureLength = episodeInfo.enclosureLength,
         enclosureType = episodeInfo.enclosureType,
+        isDownloaded= episodeInfo.isDownloaded,
+        filePath = episodeInfo.filePath,
+        downloadTime = episodeInfo.downloadTime
     )
 }
 
@@ -55,4 +61,7 @@ fun EpisodeToPodcast.toPlayerEpisode(): PlayerEpisode =
         enclosureUrl = episode.enclosureUrl,
         enclosureLength = episode.enclosureLength,
         enclosureType = episode.enclosureType,
+        isDownloaded= episode.isDownloaded,
+        filePath = episode.filePath,
+        downloadTime = episode.downloadTime
     )

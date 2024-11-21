@@ -2,12 +2,16 @@ package com.mammoth.podcast.ui.player
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.Uri
+import android.util.Log
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.mammoth.podcast.MediaPlayerService
 import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.util.DownloadState
 import java.time.Duration
 import kotlin.reflect.KProperty
 import kotlinx.coroutines.CoroutineDispatcher
@@ -69,9 +73,9 @@ class MammothEpisodePlayer(
             SessionToken(context, ComponentName(context, MediaPlayerService::class.java))
         /* Instantiating our MediaController and linking it to the service using the session token */
         val mediacontrollerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-
         mediacontrollerFuture.addListener({
             player = mediacontrollerFuture.get()
+            player?.addListener(PlayerEventListener())
         }, MoreExecutors.directExecutor())
     }
 
@@ -80,6 +84,53 @@ class MammothEpisodePlayer(
     override val playerState: StateFlow<EpisodePlayerState> = _playerState.asStateFlow()
 
     override var currentEpisode: PlayerEpisode? by _currentEpisode
+
+    private inner class PlayerEventListener : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            super.onIsPlayingChanged(isPlaying)
+            // Update the notification to reflect the current play/pause state
+            Log.d(MammothEpisodePlayer::class.simpleName, "isPlaying = $isPlaying")
+            val currentEpisodePlayerState = EpisodePlayerState(
+                currentEpisode = _playerState.value.currentEpisode,
+                queue = _playerState.value.queue,
+                isPlaying = isPlaying,
+                timeElapsed = _playerState.value.timeElapsed,
+                playbackSpeed = _playerState.value.playbackSpeed
+            )
+            _playerState.value = currentEpisodePlayerState
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            super.onPlaybackStateChanged(playbackState)
+            // Handle other playback state changes
+            when (playbackState) {
+                Player.STATE_READY -> {
+                    // The player is ready to play
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                }
+                Player.STATE_ENDED -> {
+                    // Playback has ended
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                }
+                Player.STATE_BUFFERING -> {
+                    // Player is buffering
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                }
+                Player.STATE_IDLE -> {
+                    // Player is idle
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                }
+            }
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            super.onMediaItemTransition(mediaItem, reason)
+            // Update the notification with the new media item's information
+            mediaItem?.let {
+                Log.d(MammothEpisodePlayer::class.simpleName, "onMediaItemTransition")
+            }
+        }
+    }
 
     override fun addToQueue(episode: PlayerEpisode) {
         queue.update {
@@ -114,16 +165,15 @@ class MammothEpisodePlayer(
             }
         }
 
-        episode.enclosureUrl?.let { url ->
-            // Build the media item.
-            val mediaItem = MediaItem.fromUri(url)
-            // Set the media item to be played.
-            player?.setMediaItem(mediaItem)
-            // Prepare the player.
-            player?.prepare()
-            // Start the playback.
-            player?.play()
-        }
+        val uri:Uri = if(episode.isDownloaded == DownloadState.DOWNLOADED.value) Uri.parse(episode.filePath) else Uri.parse(episode.enclosureUrl)
+        // Build the media item.
+        val mediaItem = MediaItem.fromUri(uri)
+        // Set the media item to be played.
+        player?.setMediaItem(mediaItem)
+        // Prepare the player.
+        player?.prepare()
+        // Start the playback.
+        player?.play()
     }
 
     override fun play(playerEpisode: PlayerEpisode) {
