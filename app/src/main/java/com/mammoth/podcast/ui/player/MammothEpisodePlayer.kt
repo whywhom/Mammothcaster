@@ -174,6 +174,7 @@ class MammothEpisodePlayer(
         player?.prepare()
         // Start the playback.
         player?.play()
+        player?.seekTo(timeElapsed.value.toMillis())
     }
 
     override fun play(playerEpisode: PlayerEpisode) {
@@ -218,7 +219,7 @@ class MammothEpisodePlayer(
     override fun stop() {
         isPlaying.value = false
         timeElapsed.value = Duration.ZERO
-
+        player?.stop()
         timerJob?.cancel()
         timerJob = null
     }
@@ -228,13 +229,14 @@ class MammothEpisodePlayer(
         timeElapsed.update {
             (it + duration).coerceAtMost(currentEpisodeDuration)
         }
-        player?.seekForward()
+        player?.seekTo(timeElapsed.value.toMillis())
     }
 
     override fun rewindBy(duration: Duration) {
         timeElapsed.update {
             (it - duration).coerceAtLeast(Duration.ZERO)
         }
+        player?.seekTo(timeElapsed.value.toMillis())
     }
 
     override fun onSeekingStarted() {
