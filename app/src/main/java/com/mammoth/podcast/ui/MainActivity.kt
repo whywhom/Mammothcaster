@@ -16,6 +16,7 @@ import com.mammoth.podcast.CastApp
 import com.mammoth.podcast.ui.theme.MammothTheme
 
 class MainActivity : ComponentActivity() {
+
     val requestPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
         // Handle permission requests results
         // See the permission example in the Android platform samples: https://github.com/android/platform-samples
@@ -37,7 +38,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             requestPermissions.launch(arrayOf(READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, READ_MEDIA_VISUAL_USER_SELECTED))
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

@@ -4,17 +4,17 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mammoth.podcast.MammothCastApp
+import com.mammoth.podcast.data.database.model.EpisodeToPodcast
 import com.mammoth.podcast.data.repository.EpisodeStore
 import com.mammoth.podcast.data.repository.PodcastStore
 import com.mammoth.podcast.data.repository.PodcastsRepository
 import com.mammoth.podcast.domain.domain.FilterableCategoriesUseCase
 import com.mammoth.podcast.domain.domain.PodcastCategoryFilterUseCase
+import com.mammoth.podcast.domain.model.CategoryInfo
 import com.mammoth.podcast.domain.model.FilterableCategoriesModel
 import com.mammoth.podcast.domain.model.LibraryInfo
 import com.mammoth.podcast.domain.model.PodcastCategoryFilterResult
 import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.data.database.model.EpisodeToPodcast
-import com.mammoth.podcast.domain.model.CategoryInfo
 import com.mammoth.podcast.domain.model.asExternalModel
 import com.mammoth.podcast.domain.model.asPodcastToEpisodeInfo
 import com.mammoth.podcast.ui.player.EpisodePlayer
@@ -115,7 +115,12 @@ class HomeViewModel(
             }
         }
 
-        refresh(force = false)
+        refresh(force = checkIfOverTime())
+    }
+
+    private fun checkIfOverTime(): Boolean {
+        Log.d(HomeViewModel::class.java.simpleName, "checkIfOverTime = ${MammothCastApp.shouldRefresh}")
+        return MammothCastApp.shouldRefresh
     }
 
     fun refresh(force: Boolean = true) {

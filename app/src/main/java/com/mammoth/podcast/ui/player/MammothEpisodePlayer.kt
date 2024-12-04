@@ -6,10 +6,11 @@ import android.net.Uri
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import com.mammoth.podcast.MediaPlayerService
 import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import com.mammoth.podcast.util.DownloadState
 import java.time.Duration
@@ -29,7 +30,7 @@ import kotlinx.coroutines.launch
 
 class MammothEpisodePlayer(
     context: Context,
-    private val mainDispatcher: CoroutineDispatcher
+    mainDispatcher: CoroutineDispatcher
 ) : EpisodePlayer {
 
     private var player: MediaController? = null
@@ -42,6 +43,11 @@ class MammothEpisodePlayer(
     private val coroutineScope = CoroutineScope(mainDispatcher)
 
     private var timerJob: Job? = null
+    private var mediaControllerFuture: ListenableFuture<MediaController>? = null
+
+    companion object {
+        val TAG = MammothEpisodePlayer::class.simpleName
+    }
 
     init {
         coroutineScope.launch {
@@ -71,10 +77,11 @@ class MammothEpisodePlayer(
         /* Creating session token (links our UI with service and starts it) */
         val sessionToken =
             SessionToken(context, ComponentName(context, MediaPlayerService::class.java))
+
         /* Instantiating our MediaController and linking it to the service using the session token */
-        val mediacontrollerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-        mediacontrollerFuture.addListener({
-            player = mediacontrollerFuture.get()
+        mediaControllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        mediaControllerFuture?.addListener({
+            player = mediaControllerFuture?.get()
             player?.addListener(PlayerEventListener())
         }, MoreExecutors.directExecutor())
     }
@@ -90,14 +97,16 @@ class MammothEpisodePlayer(
             super.onIsPlayingChanged(isPlaying)
             // Update the notification to reflect the current play/pause state
             Log.d(MammothEpisodePlayer::class.simpleName, "isPlaying = $isPlaying")
-            val currentEpisodePlayerState = EpisodePlayerState(
-                currentEpisode = _playerState.value.currentEpisode,
-                queue = _playerState.value.queue,
-                isPlaying = isPlaying,
-                timeElapsed = _playerState.value.timeElapsed,
-                playbackSpeed = _playerState.value.playbackSpeed
-            )
-            _playerState.value = currentEpisodePlayerState
+            this@MammothEpisodePlayer.isPlaying.value = isPlaying
+            when (isPlaying) {
+                true -> { }
+                false -> { }
+            }
+        }
+
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            super.onTimelineChanged(timeline, reason)
+            Log.d(MammothEpisodePlayer::class.simpleName, "timeline = $timeline")
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -110,15 +119,15 @@ class MammothEpisodePlayer(
                 }
                 Player.STATE_ENDED -> {
                     // Playback has ended
-                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_ENDED")
                 }
                 Player.STATE_BUFFERING -> {
                     // Player is buffering
-                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_BUFFERING")
                 }
                 Player.STATE_IDLE -> {
                     // Player is idle
-                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_READY")
+                    Log.d(MammothEpisodePlayer::class.simpleName, "Player.STATE_IDLE")
                 }
             }
         }
@@ -149,7 +158,6 @@ class MammothEpisodePlayer(
         }
 
         val episode = _currentEpisode.value ?: return
-
         isPlaying.value = true
         timerJob = coroutineScope.launch {
             // Increment timer by a second
@@ -167,14 +175,15 @@ class MammothEpisodePlayer(
 
         val uri:Uri = if(episode.isDownloaded == DownloadState.DOWNLOADED.value) Uri.parse(episode.filePath) else Uri.parse(episode.enclosureUrl)
         // Build the media item.
+        Log.d(TAG, "Play uri = $uri")
         val mediaItem = MediaItem.fromUri(uri)
         // Set the media item to be played.
-        player?.setMediaItem(mediaItem)
+        mediaControllerFuture?.get()?.setMediaItem(mediaItem)
         // Prepare the player.
-        player?.prepare()
+        mediaControllerFuture?.get()?.prepare()
         // Start the playback.
-        player?.play()
-        player?.seekTo(timeElapsed.value.toMillis())
+        mediaControllerFuture?.get()?.play()
+        mediaControllerFuture?.get()?.seekTo(timeElapsed.value.toMillis())
     }
 
     override fun play(playerEpisode: PlayerEpisode) {
@@ -211,7 +220,7 @@ class MammothEpisodePlayer(
 
     override fun pause() {
         isPlaying.value = false
-        player?.pause()
+        mediaControllerFuture?.get()?.pause()
         timerJob?.cancel()
         timerJob = null
     }
@@ -219,7 +228,7 @@ class MammothEpisodePlayer(
     override fun stop() {
         isPlaying.value = false
         timeElapsed.value = Duration.ZERO
-        player?.stop()
+        mediaControllerFuture?.get()?.stop()
         timerJob?.cancel()
         timerJob = null
     }
@@ -229,14 +238,14 @@ class MammothEpisodePlayer(
         timeElapsed.update {
             (it + duration).coerceAtMost(currentEpisodeDuration)
         }
-        player?.seekTo(timeElapsed.value.toMillis())
+        mediaControllerFuture?.get()?.seekTo(timeElapsed.value.toMillis())
     }
 
     override fun rewindBy(duration: Duration) {
         timeElapsed.update {
             (it - duration).coerceAtLeast(Duration.ZERO)
         }
-        player?.seekTo(timeElapsed.value.toMillis())
+        mediaControllerFuture?.get()?.seekTo(timeElapsed.value.toMillis())
     }
 
     override fun onSeekingStarted() {

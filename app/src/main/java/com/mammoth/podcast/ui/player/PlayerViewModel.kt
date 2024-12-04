@@ -2,14 +2,11 @@ package com.mammoth.podcast.ui.player
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import com.mammoth.podcast.MammothCastApp
 import com.mammoth.podcast.data.repository.EpisodeStore
 import com.mammoth.podcast.ui.player.model.toPlayerEpisode
@@ -37,7 +34,6 @@ class PlayerViewModel(
 
     var uiState by mutableStateOf(PlayerUiState())
         private set
-
     init {
         viewModelScope.launch {
             episodeStore.episodeAndPodcastWithUri(episodeUri).flatMapConcat {
