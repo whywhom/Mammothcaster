@@ -8,8 +8,8 @@ import com.mammoth.podcast.data.database.model.EpisodeToPodcast
 import com.mammoth.podcast.data.repository.EpisodeStore
 import com.mammoth.podcast.data.repository.PodcastStore
 import com.mammoth.podcast.data.repository.PodcastsRepository
-import com.mammoth.podcast.domain.domain.FilterableCategoriesUseCase
-import com.mammoth.podcast.domain.domain.PodcastCategoryFilterUseCase
+import com.mammoth.podcast.domain.FilterableCategoriesUseCase
+import com.mammoth.podcast.domain.PodcastCategoryFilterUseCase
 import com.mammoth.podcast.domain.model.CategoryInfo
 import com.mammoth.podcast.domain.model.FilterableCategoriesModel
 import com.mammoth.podcast.domain.model.LibraryInfo

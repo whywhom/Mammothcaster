@@ -1,4 +1,4 @@
-package com.mammoth.podcast.domain.domain
+package com.mammoth.podcast.domain
 
 import com.mammoth.podcast.MammothCastApp
 import com.mammoth.podcast.data.database.model.Category
