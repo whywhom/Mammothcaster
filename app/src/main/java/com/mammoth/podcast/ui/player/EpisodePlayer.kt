@@ -11,6 +11,7 @@ data class EpisodePlayerState(
     val playbackSpeed: Duration = DefaultPlaybackSpeed,
     val isPlaying: Boolean = false,
     val timeElapsed: Duration = Duration.ZERO,
+
 )
 
 /**
@@ -98,12 +99,12 @@ interface EpisodePlayer {
     fun onSeekingFinished(duration: Duration)
 
     /**
-     * Increases the speed of Player playback by a given time specified in [duration].
+     * Increases the speed of Player playback by a given time specified in [speed].
      */
     fun increaseSpeed(speed: Duration = Duration.ofMillis(500))
 
     /**
-     * Decreases the speed of Player playback by a given time specified in [duration].
+     * Decreases the speed of Player playback by a given time specified in [speed].
      */
     fun decreaseSpeed(speed: Duration = Duration.ofMillis(500))
 }

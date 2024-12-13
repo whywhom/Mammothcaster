@@ -1,4 +1,4 @@
-package com.mammoth.podcast.ui.player
+package com.mammoth.podcast.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -121,7 +121,7 @@ class MediaPlayerService : MediaSessionService() {
         notificationManager.createNotificationChannel(NotificationChannel(CHANNEL_ID,"Channel", NotificationManager.IMPORTANCE_LOW))
 
         // NotificationCompat.Builder here.
-        nBuilder = NotificationCompat.Builder(this,CHANNEL_ID)
+        nBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             // Text can be set here
             // but I believe setting MediaMetaData to MediaSession would be enough.
             // I havent tested it deeply yet but did display artist from session

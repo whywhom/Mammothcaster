@@ -1,5 +1,6 @@
 package com.mammoth.podcast.ui.player
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -51,6 +52,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +64,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -101,9 +104,10 @@ fun PlayerScreen(
     onBackPress: () -> Unit,
     viewModel: PlayerViewModel
 ) {
-    val uiState = viewModel.uiState
+    val uiState = viewModel.uiState.collectAsState()
     PlayerScreen(
-        uiState = uiState,
+        viewModel = viewModel,
+        uiState = uiState.value,
         windowSizeClass = windowSizeClass,
         displayFeatures = displayFeatures,
         onBackPress = onBackPress,
@@ -127,6 +131,7 @@ fun PlayerScreen(
  */
 @Composable
 private fun PlayerScreen(
+    viewModel: PlayerViewModel,
     uiState: PlayerUiState,
     windowSizeClass: WindowSizeClass,
     displayFeatures: List<DisplayFeature>,
@@ -153,6 +158,7 @@ private fun PlayerScreen(
     ) { contentPadding ->
         if (uiState.episodePlayerState.currentEpisode != null) {
             PlayerContentWithBackground(
+                viewModel = viewModel,
                 uiState = uiState,
                 windowSizeClass = windowSizeClass,
                 displayFeatures = displayFeatures,
@@ -186,6 +192,7 @@ private fun PlayerBackground(
 
 @Composable
 fun PlayerContentWithBackground(
+    viewModel: PlayerViewModel,
     uiState: PlayerUiState,
     windowSizeClass: WindowSizeClass,
     displayFeatures: List<DisplayFeature>,
@@ -203,6 +210,7 @@ fun PlayerContentWithBackground(
                 .padding(contentPadding)
         )
         PlayerContent(
+            viewModel = viewModel,
             uiState = uiState,
             windowSizeClass = windowSizeClass,
             displayFeatures = displayFeatures,
@@ -229,6 +237,7 @@ data class PlayerControlActions(
 
 @Composable
 fun PlayerContent(
+    viewModel: PlayerViewModel,
     uiState: PlayerUiState,
     windowSizeClass: WindowSizeClass,
     displayFeatures: List<DisplayFeature>,
@@ -266,6 +275,7 @@ fun PlayerContent(
                 },
                 second = {
                     PlayerContentTableTopBottom(
+                        viewModel = viewModel,
                         uiState = uiState,
                         onBackPress = onBackPress,
                         onAddToQueue = onAddToQueue,
@@ -298,6 +308,7 @@ fun PlayerContent(
                     },
                     second = {
                         PlayerContentBookEnd(
+                            viewModel = viewModel,
                             uiState = uiState,
                             playerControlActions = playerControlActions,
                         )
@@ -309,6 +320,7 @@ fun PlayerContent(
         }
     } else {
         PlayerContentRegular(
+            viewModel = viewModel,
             uiState = uiState,
             onBackPress = onBackPress,
             onAddToQueue = onAddToQueue,
@@ -323,6 +335,7 @@ fun PlayerContent(
  */
 @Composable
 private fun PlayerContentRegular(
+    viewModel: PlayerViewModel,
     uiState: PlayerUiState,
     onBackPress: () -> Unit,
     onAddToQueue: () -> Unit,
@@ -363,12 +376,14 @@ private fun PlayerContentRegular(
                 modifier = Modifier.weight(10f)
             ) {
                 PlayerSlider(
+                    viewModel = viewModel,
                     timeElapsed = playerEpisode.timeElapsed,
                     episodeDuration = currentEpisode.duration,
                     onSeekingStarted = playerControlActions.onSeekingStarted,
                     onSeekingFinished = playerControlActions.onSeekingFinished
                 )
                 PlayerButtons(
+                    viewModel = viewModel,
                     hasNext = playerEpisode.queue.isNotEmpty(),
                     isPlaying = playerEpisode.isPlaying,
                     onPlayPress = playerControlActions.onPlayPress,
@@ -420,6 +435,7 @@ private fun PlayerContentTableTopTop(
  */
 @Composable
 private fun PlayerContentTableTopBottom(
+    viewModel: PlayerViewModel,
     uiState: PlayerUiState,
     onBackPress: () -> Unit,
     onAddToQueue: () -> Unit,
@@ -454,6 +470,7 @@ private fun PlayerContentTableTopBottom(
             modifier = Modifier.weight(10f)
         ) {
             PlayerButtons(
+                viewModel = viewModel,
                 hasNext = episodePlayerState.queue.isNotEmpty(),
                 isPlaying = episodePlayerState.isPlaying,
                 onPlayPress = playerControlActions.onPlayPress,
@@ -466,6 +483,7 @@ private fun PlayerContentTableTopBottom(
                 modifier = Modifier.padding(top = 8.dp)
             )
             PlayerSlider(
+                viewModel = viewModel,
                 timeElapsed = episodePlayerState.timeElapsed,
                 episodeDuration = episode.duration,
                 onSeekingStarted = playerControlActions.onSeekingStarted,
@@ -507,6 +525,7 @@ private fun PlayerContentBookStart(
  */
 @Composable
 private fun PlayerContentBookEnd(
+    viewModel: PlayerViewModel,
     uiState: PlayerUiState,
     playerControlActions: PlayerControlActions,
     modifier: Modifier = Modifier
@@ -527,12 +546,14 @@ private fun PlayerContentBookEnd(
                 .weight(1f)
         )
         PlayerSlider(
+            viewModel = viewModel,
             timeElapsed = episodePlayerState.timeElapsed,
             episodeDuration = episode.duration,
             onSeekingStarted = playerControlActions.onSeekingStarted,
             onSeekingFinished = playerControlActions.onSeekingFinished,
         )
         PlayerButtons(
+            viewModel = viewModel,
             hasNext = episodePlayerState.queue.isNotEmpty(),
             isPlaying = episodePlayerState.isPlaying,
             onPlayPress = playerControlActions.onPlayPress,
@@ -656,6 +677,7 @@ fun Duration.formatString(): String {
 
 @Composable
 private fun PlayerSlider(
+    viewModel: PlayerViewModel,
     timeElapsed: Duration,
     episodeDuration: Duration?,
     onSeekingStarted: () -> Unit,
@@ -691,6 +713,7 @@ private fun PlayerSlider(
 
 @Composable
 private fun PlayerButtons(
+    viewModel: PlayerViewModel,
     hasNext: Boolean,
     isPlaying: Boolean,
     onPlayPress: () -> Unit,
@@ -703,6 +726,8 @@ private fun PlayerButtons(
     playerButtonSize: Dp = 72.dp,
     sideButtonSize: Dp = 48.dp,
 ) {
+    val uiState = viewModel.uiState.collectAsState()
+    Log.d("andy_test", "PlayerButtons isPlaying = ${uiState.value.episodePlayerState.isPlaying}")
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -743,7 +768,7 @@ private fun PlayerButtons(
                     onRewindBy(Duration.ofSeconds(10))
                 }
         )
-        if (isPlaying) {
+        if (uiState.value.episodePlayerState.isPlaying) {
             Image(
                 imageVector = Icons.Outlined.Pause,
                 contentDescription = stringResource(R.string.cd_pause),
@@ -820,6 +845,7 @@ fun TopAppBarPreview() {
 fun PlayerButtonsPreview() {
     MammothTheme {
         PlayerButtons(
+            viewModel = PlayerViewModel(context = LocalContext.current, episodeUri = ""),
             hasNext = false,
             isPlaying = true,
             onPlayPress = {},
@@ -837,6 +863,7 @@ fun PlayerScreenPreview() {
     MammothTheme {
         BoxWithConstraints {
             PlayerScreen(
+                viewModel = PlayerViewModel(context = LocalContext.current, episodeUri = ""),
                 PlayerUiState(
                     episodePlayerState = EpisodePlayerState(
                         currentEpisode = PlayerEpisode(

@@ -1,14 +1,14 @@
-package com.mammoth.podcast
+package com.mammoth.podcast.service
 import android.content.ContentValues
 import android.content.Context
 import android.os.Build
 import android.provider.MediaStore
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.mammoth.podcast.MammothCastApp
 import com.mammoth.podcast.util.DownloadState
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
