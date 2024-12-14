@@ -3,12 +3,6 @@ package com.mammoth.podcast
 import android.app.Application
 import android.content.Context
 import coil.ImageLoader
-import com.mammoth.podcast.data.repository.CategoryStore
-import com.mammoth.podcast.data.repository.EpisodeStore
-import com.mammoth.podcast.data.repository.LocalCategoryStore
-import com.mammoth.podcast.data.repository.LocalEpisodeStore
-import com.mammoth.podcast.data.repository.LocalPodcastStore
-import com.mammoth.podcast.data.repository.PodcastStore
 import com.mammoth.podcast.data.database.JetcasterDatabase
 import com.mammoth.podcast.data.database.dao.CategoriesDao
 import com.mammoth.podcast.data.database.dao.EpisodesDao
@@ -16,16 +10,24 @@ import com.mammoth.podcast.data.database.dao.PodcastCategoryEntryDao
 import com.mammoth.podcast.data.database.dao.PodcastFollowedEntryDao
 import com.mammoth.podcast.data.database.dao.PodcastsDao
 import com.mammoth.podcast.data.database.dao.TransactionRunner
+import com.mammoth.podcast.data.repository.CategoryStore
+import com.mammoth.podcast.data.repository.EpisodeStore
+import com.mammoth.podcast.data.repository.LocalCategoryStore
+import com.mammoth.podcast.data.repository.LocalEpisodeStore
+import com.mammoth.podcast.data.repository.LocalPodcastStore
+import com.mammoth.podcast.data.repository.PodcastStore
 import com.mammoth.podcast.ui.player.EpisodePlayer
 import com.mammoth.podcast.ui.player.MammothEpisodePlayer
+import com.mammoth.podcast.util.AppTimeChecker
 import com.rometools.rome.io.SyndFeedInput
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 
 /**
- * Application which sets up our dependency [Graph] with a context.
+ * Application which sets up our dependency with a context.
  */
 class MammothCastApp : Application() {
+
     companion object {
         lateinit var appContext: Context
         lateinit var database: JetcasterDatabase
@@ -41,6 +43,7 @@ class MammothCastApp : Application() {
         lateinit var categoryStore: CategoryStore
         lateinit var imageLoader: ImageLoader
         lateinit var episodePlayer: EpisodePlayer
+        var shouldRefresh: Boolean = false
         val okHttpClient = OkHttpClient()
     }
     override fun onCreate() {
@@ -50,6 +53,7 @@ class MammothCastApp : Application() {
     }
 
     private fun init() {
+        shouldRefresh = AppTimeChecker(this).checkIfOverTime()
         database = JetcasterDatabase.getInstance(this)
         categoriesDao = database.categoriesDao()
         podcastCategoryEntryDao = database.podcastCategoryEntryDao()

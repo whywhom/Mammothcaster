@@ -5,6 +5,7 @@ import com.mammoth.podcast.MammothCastApp
 import com.mammoth.podcast.data.database.model.Category
 import com.mammoth.podcast.data.database.model.Episode
 import com.mammoth.podcast.data.database.model.Podcast
+import com.mammoth.podcast.util.DownloadState
 import com.rometools.modules.itunes.EntryInformation
 import com.rometools.modules.itunes.FeedInformation
 import com.rometools.rome.feed.synd.SyndEntry
@@ -144,7 +145,7 @@ private fun SyndEntry.toEpisode(podcastUri: String): Episode {
         enclosureUrl = syndEnclosure?.url,
         enclosureLength = syndEnclosure?.length?:0,
         enclosureType = syndEnclosure?.type,
-        isDownloaded = false,
+        isDownloaded = DownloadState.NOT_DOWNLOAD.value,
         filePath = "",
         downloadTime = 0
     )

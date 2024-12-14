@@ -14,7 +14,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,7 +39,7 @@ android {
     }
 
     buildFeatures {
-        compose = true  // 启用 Jetpack Compose
+        compose = true  // Jetpack Compose
     }
 
     composeOptions {
@@ -82,7 +82,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewModelCompose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
-
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.window)
     implementation(libs.androidx.window.core)
 
@@ -119,6 +119,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media)
 
     // Testing
     testImplementation(libs.junit)

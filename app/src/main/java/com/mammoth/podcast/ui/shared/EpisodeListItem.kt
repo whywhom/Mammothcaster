@@ -1,5 +1,6 @@
 package com.mammoth.podcast.ui.shared
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.PlayCircleFilled
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,12 +24,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -42,6 +48,8 @@ import com.mammoth.podcast.domain.model.EpisodeInfo
 import com.mammoth.podcast.domain.model.PodcastInfo
 import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.theme.MammothTheme
+import com.mammoth.podcast.util.DownloadState
+import com.mammoth.podcast.util.enqueueEpisodeDownloads
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -86,6 +94,7 @@ fun EpisodeListItem(
     }
 }
 
+@SuppressLint("UnrememberedMutableState")
 @Composable
 private fun EpisodeListItemFooter(
     episode: EpisodeInfo,
@@ -93,6 +102,7 @@ private fun EpisodeListItemFooter(
     onQueueEpisode: (PlayerEpisode) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -154,14 +164,28 @@ private fun EpisodeListItemFooter(
 
         IconButton(
             onClick = {
-
+                if (episode.isDownloaded == DownloadState.NOT_DOWNLOAD.value) {
+                    enqueueEpisodeDownloads(arrayListOf(episode), context)
+                }
             },
         ) {
-            Icon(
-                imageVector = if(episode.isDownloaded)Icons.Default.DownloadDone else Icons.Default.Download,
-                contentDescription = stringResource(R.string.cd_download),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            when (episode.isDownloaded) {
+                DownloadState.DOWNLOADED.value -> Icon(
+                    imageVector = Icons.Default.DownloadDone,
+                    contentDescription = stringResource(R.string.cd_download),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                DownloadState.NOT_DOWNLOAD.value -> Icon(
+                    imageVector = Icons.Default.Download,
+                    contentDescription = stringResource(R.string.cd_download),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                DownloadState.DOWNLOADING.value -> CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 2.dp
+                )
+            }
         }
 
         IconButton(

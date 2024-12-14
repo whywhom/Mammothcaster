@@ -2,15 +2,14 @@ package com.mammoth.podcast.ui.player
 
 import android.annotation.SuppressLint
 import android.content.Context
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mammoth.podcast.MammothCastApp
 import com.mammoth.podcast.data.repository.EpisodeStore
 import com.mammoth.podcast.ui.player.model.toPlayerEpisode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -32,9 +31,8 @@ class PlayerViewModel(
     episodeUri: String
 ) : ViewModel() {
 
-    var uiState by mutableStateOf(PlayerUiState())
-        private set
-
+    private var _uiState = MutableStateFlow(PlayerUiState())
+    var uiState: StateFlow<PlayerUiState> = _uiState
     init {
         viewModelScope.launch {
             episodeStore.episodeAndPodcastWithUri(episodeUri).flatMapConcat {
@@ -43,7 +41,7 @@ class PlayerViewModel(
             }.map {
                 PlayerUiState(episodePlayerState = it)
             }.collect {
-                uiState = it
+                _uiState.value = it
             }
         }
     }
@@ -85,7 +83,7 @@ class PlayerViewModel(
     }
 
     fun onAddToQueue() {
-        uiState.episodePlayerState.currentEpisode?.let {
+        uiState.value.episodePlayerState.currentEpisode?.let {
             episodePlayer.addToQueue(it)
         }
     }

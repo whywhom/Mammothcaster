@@ -73,4 +73,19 @@ abstract class EpisodesDao : BaseDao<Episode> {
         podcastUris: List<String>,
         limit: Int
     ): Flow<List<EpisodeToPodcast>>
+
+    @Transaction
+    @Query(
+        """
+    UPDATE episodes
+    SET is_downloaded = :isDownloaded, file_path = :filePath, download_time = :downloadTime
+    WHERE uri = :episodeUri
+    """
+    )
+    abstract suspend fun updateDownloadStatus(
+        episodeUri: String,
+        filePath: String?,
+        isDownloaded: Int,
+        downloadTime: Long = System.currentTimeMillis()
+    )
 }

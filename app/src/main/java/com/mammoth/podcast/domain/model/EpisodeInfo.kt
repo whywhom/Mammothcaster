@@ -1,6 +1,7 @@
 package com.mammoth.podcast.domain.model
 
 import com.mammoth.podcast.data.database.model.Episode
+import com.mammoth.podcast.util.DownloadState
 import java.time.Duration
 import java.time.OffsetDateTime
 
@@ -18,7 +19,7 @@ data class EpisodeInfo(
     val enclosureUrl: String?,
     val enclosureLength: Long = 0,
     val enclosureType: String?,
-    val isDownloaded: Boolean = false,
+    val isDownloaded: Int = DownloadState.NOT_DOWNLOAD.value,
     val filePath: String? = null,
     val downloadTime: Long = 0
 )

@@ -1,5 +1,6 @@
 package com.mammoth.podcast.ui.player
 
+import androidx.media3.exoplayer.ExoPlayer
 import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import java.time.Duration
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,7 @@ data class EpisodePlayerState(
     val playbackSpeed: Duration = DefaultPlaybackSpeed,
     val isPlaying: Boolean = false,
     val timeElapsed: Duration = Duration.ZERO,
+    val exoPlayState: Int = ExoPlayer.STATE_IDLE
 )
 
 /**
@@ -98,12 +100,12 @@ interface EpisodePlayer {
     fun onSeekingFinished(duration: Duration)
 
     /**
-     * Increases the speed of Player playback by a given time specified in [duration].
+     * Increases the speed of Player playback by a given time specified in [speed].
      */
     fun increaseSpeed(speed: Duration = Duration.ofMillis(500))
 
     /**
-     * Decreases the speed of Player playback by a given time specified in [duration].
+     * Decreases the speed of Player playback by a given time specified in [speed].
      */
     fun decreaseSpeed(speed: Duration = Duration.ofMillis(500))
 }
