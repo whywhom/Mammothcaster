@@ -46,7 +46,6 @@ class MammothEpisodePlayer(
 
     private val queue = MutableStateFlow<List<PlayerEpisode>>(emptyList())
     private val isPlaying = MutableStateFlow(false)
-
     private val _playerSpeed = MutableStateFlow(DefaultPlaybackSpeed)
     override var playerSpeed: Duration = _playerSpeed.value
 
@@ -67,7 +66,7 @@ class MammothEpisodePlayer(
                 queue,
                 isPlaying,
                 timeElapsed,
-                _playerSpeed
+                _playerSpeed,
             ) { currentEpisode, queue, isPlaying, timeElapsed, playerSpeed ->
                 EpisodePlayerState(
                     currentEpisode = currentEpisode,
@@ -98,10 +97,7 @@ class MammothEpisodePlayer(
 
     private inner class PlayerEventListener : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
-            when (playbackState) {
-                ExoPlayer.STATE_BUFFERING -> {}
-                ExoPlayer.STATE_READY -> {}
-            }
+            _playerState.value = _playerState.value.copy(exoPlayState = ExoPlayer.STATE_BUFFERING)
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -157,23 +153,7 @@ class MammothEpisodePlayer(
         if (mediaControllerFuture?.get()?.isPlaying == true) {
             return
         }
-
         val episode = _currentEpisode.value ?: return
-//        isPlaying.value = true
-//        timerJob = coroutineScope.launch {
-//            // Increment timer by a second
-//            while (isActive && timeElapsed.value < episode.duration) {
-//                delay(playerSpeed.toMillis())
-//                timeElapsed.update { it + playerSpeed }
-//            }
-//            // Once done playing, see if
-//            isPlaying.value = false
-//            timeElapsed.value = Duration.ZERO
-//            if (hasNext()) {
-//                next()
-//            }
-//        }
-
         val uri:Uri = if(episode.isDownloaded == DownloadState.DOWNLOADED.value) Uri.parse(episode.filePath) else Uri.parse(episode.enclosureUrl)
         // Build the media item.
         Log.d(TAG, "Play uri = $uri")

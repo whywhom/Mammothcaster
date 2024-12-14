@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -74,6 +76,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import androidx.window.layout.DisplayFeature
@@ -781,17 +784,27 @@ private fun PlayerButtons(
                     }
             )
         } else {
-            Image(
-                imageVector = Icons.Outlined.PlayArrow,
-                contentDescription = stringResource(R.string.cd_play),
-                contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
-                modifier = primaryButtonModifier
-                    .padding(8.dp)
-                    .clickable {
-                        onPlayPress()
-                    }
-            )
+            if (uiState.value.episodePlayerState.exoPlayState == ExoPlayer.STATE_BUFFERING) {
+                CircularProgressIndicator(
+                    modifier = primaryButtonModifier
+                        .padding(16.dp)
+                        .clickable {},
+                    color = Color.Black,
+                    strokeWidth = 4.dp
+                )
+            } else {
+                Image(
+                    imageVector = Icons.Outlined.PlayArrow,
+                    contentDescription = stringResource(R.string.cd_play),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
+                    modifier = primaryButtonModifier
+                        .padding(8.dp)
+                        .clickable {
+                            onPlayPress()
+                        }
+                )
+            }
         }
         Image(
             imageVector = Icons.Filled.Forward10,
