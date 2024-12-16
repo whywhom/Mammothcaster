@@ -130,7 +130,6 @@ class HomeViewModel(
                 podcastsRepository.updatePodcasts(force)
             }
             // TODO: look at result of runCatching and show any errors
-
             refreshing.value = false
         }
     }

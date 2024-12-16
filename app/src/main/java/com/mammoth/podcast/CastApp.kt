@@ -24,6 +24,8 @@ import com.mammoth.podcast.ui.player.PlayerViewModel
 import android.Manifest
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.mammoth.podcast.Screen.Companion.ARG_SEARCH_QUERY
+import com.mammoth.podcast.ui.home.search.SearchScreen
 
 @Composable
 fun CastApp(
@@ -42,6 +44,9 @@ fun CastApp(
             composable(Screen.Home.route) { backStackEntry ->
                 MainScreen(
                     windowSizeClass = adaptiveInfo.windowSizeClass,
+                    navigateToSearch = { query ->
+                        appState.navigateToSearch(query, backStackEntry)
+                    },
                     navigateToPlayer = { episode ->
                         appState.navigateToPlayer(episode, backStackEntry)
                     },
@@ -62,6 +67,13 @@ fun CastApp(
                         onBackPress = appState::navigateBack,
                         viewModel = viewModel
                     )
+                }
+            }
+            composable(Screen.Search.route) { backStackEntry ->
+                val arguments = backStackEntry.arguments
+                val query = arguments?.getString(ARG_SEARCH_QUERY)
+                query?.let {
+                    SearchScreen(query = query, navController = appState.navController)
                 }
             }
         }
