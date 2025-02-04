@@ -363,7 +363,8 @@ private fun HomeAppBar(
         SearchBar(
             inputField = {
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .onFocusChanged { focusState ->
                             if (focusState.isFocused) {
                                 navigateToSearch("")

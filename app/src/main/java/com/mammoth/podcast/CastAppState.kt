@@ -32,8 +32,15 @@ sealed class Screen(val route: String) {
         fun createRoute(podcastUri: String) = "podcast/$podcastUri"
     }
 
+    data object ItunePodcastDetails : Screen("itune/{$ARG_ITUNE_URI}/{$ARG_ITUNE_TITLE}") {
+        fun createRoute(ituneUri: String, title:String):String {
+            val path = "itune/$ituneUri/$title"
+            return path
+        }
+    }
+
     data object Search : Screen("search/{$ARG_SEARCH_QUERY}") {
-        fun createRoute(query: String?) :String {
+        fun createRoute(query: String?):String {
             val path = "search/$query"
             return path
         }
@@ -41,6 +48,8 @@ sealed class Screen(val route: String) {
 
     companion object {
         val ARG_PODCAST_URI = "podcastUri"
+        val ARG_ITUNE_URI = "ituneUri"
+        val ARG_ITUNE_TITLE = "ituneTitle"
         val ARG_EPISODE_URI = "episodeUri"
         val ARG_SEARCH_QUERY = "searchContent"
 

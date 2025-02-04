@@ -9,9 +9,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.util.ArrayList
 
 /**
  * Data repository for Podcasts.
@@ -56,5 +58,10 @@ class PodcastsRepository(
                     }
             }
         }
+    }
+
+    fun fetchFeed(feedUrl: String): Flow<PodcastRssResponse> {
+        val list = ArrayList<String>().apply { add(feedUrl) }
+        return podcastsFetcher.invoke(list)
     }
 }

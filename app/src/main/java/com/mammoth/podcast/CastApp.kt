@@ -1,5 +1,6 @@
 package com.mammoth.podcast
 
+import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -7,26 +8,30 @@ import androidx.annotation.RequiresApi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.window.layout.DisplayFeature
 import com.mammoth.podcast.Screen.Companion.ARG_EPISODE_URI
+import com.mammoth.podcast.Screen.Companion.ARG_ITUNE_TITLE
+import com.mammoth.podcast.Screen.Companion.ARG_ITUNE_URI
+import com.mammoth.podcast.Screen.Companion.ARG_SEARCH_QUERY
 import com.mammoth.podcast.ui.home.HomeViewModel
 import com.mammoth.podcast.ui.home.MainScreen
+import com.mammoth.podcast.ui.home.search.SearchScreen
 import com.mammoth.podcast.ui.player.PlayerScreen
 import com.mammoth.podcast.ui.player.PlayerViewModel
-import android.Manifest
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.mammoth.podcast.Screen.Companion.ARG_SEARCH_QUERY
-import com.mammoth.podcast.ui.home.search.SearchScreen
+import com.mammoth.podcast.ui.podcast.ItunePodcastDetails
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CastApp(
     displayFeatures: List<DisplayFeature>,
@@ -73,7 +78,27 @@ fun CastApp(
                 val arguments = backStackEntry.arguments
                 val query = arguments?.getString(ARG_SEARCH_QUERY)
                 query?.let {
-                    SearchScreen(query = query, navController = appState.navController)
+                    SearchScreen(
+                        query = query,
+                        navController = appState.navController
+                    )
+                }
+            }
+            composable(Screen.ItunePodcastDetails.route) { backStackEntry ->
+                val arguments = backStackEntry.arguments
+                val query = arguments?.getString(ARG_ITUNE_URI)
+                val title = arguments?.getString(ARG_ITUNE_TITLE)
+                query?.let {
+                    ItunePodcastDetails(
+                        title = title?:"",
+                        podcastUri = it,
+                        navigateToPlayer = { episode ->
+                            appState.navigateToPlayer(episode, backStackEntry)
+                        },
+                        navigateBack = {
+                            appState.navController.popBackStack()
+                        },
+                    )
                 }
             }
         }

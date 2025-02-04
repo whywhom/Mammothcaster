@@ -75,9 +75,7 @@ fun SearchAppBar(
                     trailingIcon = {
                         Icon(
                             modifier = Modifier.clickable {
-                                if (queryText.isNotEmpty()) {
-                                    search(queryText)
-                                }
+                                search(queryText)
                             },
                             imageVector = Icons.Default.Search,
                             contentDescription = null

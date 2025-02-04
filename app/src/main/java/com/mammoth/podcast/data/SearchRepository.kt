@@ -10,10 +10,14 @@ class SearchRepository(
     private val remoteDataSource: SearchRemoteDataSource = SearchRemoteDataSource(),
 ) {
 
-    suspend fun search(url: String): List<ResultItem> {
+    fun search(url: String): List<ResultItem> {
         return remoteDataSource.search(url)
     }
-    suspend fun getTop(url: String): List<PodcastSearchResult> {
+    fun getTop(url: String): List<PodcastSearchResult> {
         return remoteDataSource.getTop(url)
+    }
+
+    suspend fun fetchFeed(feedLookupUrl: String): List<ResultItem> {
+        return remoteDataSource.fetchFeed(feedLookupUrl)
     }
 }

@@ -21,6 +21,8 @@ class SearchViewModel(
     private var _podcastTopResult = MutableStateFlow<List<PodcastSearchResult>>(ArrayList())
     val podcastTopResult: StateFlow<List<PodcastSearchResult>> = _podcastTopResult
 
+    private val _navigationState = MutableStateFlow<List<ResultItem>>(listOf())
+    val navigationState: StateFlow<List<ResultItem>> = _navigationState
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -65,5 +67,22 @@ class SearchViewModel(
                 _isLoading.value = false
             }
         }
+    }
+
+    fun lookUpFeedById(feedLookupUrl: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val feedList = searchUseCase.fetchFeed(feedLookupUrl)
+                if (feedList.isNotEmpty()) {
+                _navigationState.value = feedList
+                    }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun clearNavigationState() {
+        _navigationState.value = listOf()
     }
 }

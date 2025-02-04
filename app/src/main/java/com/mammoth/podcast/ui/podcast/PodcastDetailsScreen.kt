@@ -325,11 +325,12 @@ fun PodcastDetailsHeaderItemButtons(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PodcastDetailsTopAppBar(
+    title: String = "",
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
-        title = { },
+        title = { Text(text = title) },
         navigationIcon = {
             IconButton(onClick = navigateBack) {
                 Icon(

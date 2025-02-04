@@ -14,4 +14,8 @@ class SearchUseCase(
     suspend fun getTop(url: String): List<PodcastSearchResult> {
         return searchRepository.getTop(url)
     }
+
+    suspend fun fetchFeed(feedLookupUrl: String): List<ResultItem> {
+        return searchRepository.fetchFeed(feedLookupUrl)
+    }
 }
