@@ -19,6 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Mammothcast"
+rootProject.name = "MammothCast"
 include(":app")
- 
+include(":core:model")
+include(":core:data")
