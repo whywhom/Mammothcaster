@@ -25,14 +25,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mammoth.podcast.R
-import com.mammoth.podcast.domain.model.CategoryInfo
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.FilterableCategoriesModel
-import com.mammoth.podcast.domain.model.PodcastCategoryFilterResult
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.theme.Keyline1
+import com.mammoth.podcast.core.designsystem.theme.Keyline1
+import com.mammoth.podcast.core.model.CategoryInfo
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.FilterableCategoriesModel
+import com.mammoth.podcast.core.model.PodcastCategoryFilterResult
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.home.category.podcastCategory
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import com.mammoth.podcast.util.fullWidthItem
 
 fun LazyListScope.discoverItems(

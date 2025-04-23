@@ -2,18 +2,21 @@ package com.mammoth.podcast.ui.home.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mammoth.podcast.data.model.PodcastSearchResult
-import com.mammoth.podcast.data.model.ResultItem
-import com.mammoth.podcast.domain.SearchUseCase
+import com.mammoth.podcast.core.data.model.PodcastSearchResult
+import com.mammoth.podcast.core.data.model.ResultItem
+import com.mammoth.podcast.core.domain.SearchUseCase
 import com.mammoth.podcast.util.BSAE_URL
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
+import javax.inject.Inject
 
-class SearchViewModel(
-    private val searchUseCase: SearchUseCase = SearchUseCase()
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val searchUseCase: SearchUseCase
 ) : ViewModel() {
     private var _searchResults = MutableStateFlow<List<ResultItem>>(ArrayList())
     val searchResults: StateFlow<List<ResultItem>> = _searchResults

@@ -3,15 +3,16 @@ package com.mammoth.podcast.ui.podcast
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mammoth.podcast.MammothCastApp
-import com.mammoth.podcast.data.network.PodcastRssResponse
-import com.mammoth.podcast.data.repository.PodcastsRepository
-import com.mammoth.podcast.ui.player.EpisodePlayer
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.data.network.PodcastRssResponse
+import com.mammoth.podcast.core.data.repository.PodcastsRepository
+import com.mammoth.podcast.core.player.EpisodePlayer
+import com.mammoth.podcast.core.player.model.PlayerEpisode
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class FeedItem(
     val title: String,
@@ -22,9 +23,10 @@ data class FeedItem(
 /**
  * ViewModel that handles the business logic and screen state of the Podcast details screen.
  */
-class ItunePodcastDetailsViewModel(
-    private val podcastsRepository: PodcastsRepository = PodcastsRepository(),
-    private val episodePlayer: EpisodePlayer = MammothCastApp.episodePlayer,
+@HiltViewModel
+class ItunePodcastDetailsViewModel @Inject constructor(
+    private val podcastsRepository: PodcastsRepository,
+    private val episodePlayer: EpisodePlayer,
 ): ViewModel() {
     private val _feedItems = MutableStateFlow<PodcastRssResponse?>(null)
     val feedItems: StateFlow<PodcastRssResponse?> = _feedItems

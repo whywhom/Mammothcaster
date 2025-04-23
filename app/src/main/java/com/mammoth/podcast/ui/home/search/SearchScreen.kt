@@ -34,20 +34,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.mammoth.podcast.Screen
-import com.mammoth.podcast.data.model.PodcastSearchResult
-import com.mammoth.podcast.data.model.ResultItem
+import com.mammoth.podcast.core.data.model.PodcastSearchResult
+import com.mammoth.podcast.core.data.model.ResultItem
 import com.mammoth.podcast.util.isCompact
 
 @Composable
 fun SearchScreen(
     query: String?,
     navController: NavHostController,
-    viewModel: SearchViewModel = viewModel()
+    viewModel: SearchViewModel = hiltViewModel()
 ) {
     var showMore by remember { mutableStateOf(false) }
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
@@ -226,7 +226,7 @@ fun SearchTopResultItemGrid(
         modifier = Modifier
             .clickable {
                 result.feedUrl?.let {
-                    viewModel.lookUpFeedById(result.feedUrl)
+                    viewModel.lookUpFeedById(it)
                 }
             }
             .fillMaxSize()
@@ -252,7 +252,7 @@ fun SearchTopResultItemList(
         modifier = Modifier
             .clickable {
                 result.feedUrl?.let {
-                    viewModel.lookUpFeedById(result.feedUrl)
+                    viewModel.lookUpFeedById(it)
                 }
             }
             .fillMaxWidth()

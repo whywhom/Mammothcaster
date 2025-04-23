@@ -15,7 +15,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.mammoth.podcast.domain.model.EpisodeInfo
+import com.mammoth.podcast.core.model.EpisodeInfo
 
 sealed class Screen(val route: String) {
 

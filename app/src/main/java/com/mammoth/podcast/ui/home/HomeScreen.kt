@@ -82,23 +82,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.mammoth.podcast.R
-import com.mammoth.podcast.component.PodcastImage
-import com.mammoth.podcast.domain.model.CategoryInfo
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.FilterableCategoriesModel
-import com.mammoth.podcast.domain.model.LibraryInfo
-import com.mammoth.podcast.domain.model.PodcastCategoryFilterResult
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.domain.model.PodcastToEpisodeInfo
+import com.mammoth.podcast.core.designsystem.component.PodcastImage
+import com.mammoth.podcast.core.model.CategoryInfo
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.FilterableCategoriesModel
+import com.mammoth.podcast.core.model.LibraryInfo
+import com.mammoth.podcast.core.model.PodcastCategoryFilterResult
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.model.PodcastToEpisodeInfo
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.home.discover.discoverItems
 import com.mammoth.podcast.ui.home.library.libraryItems
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.podcast.PodcastDetailsScreen
-import com.mammoth.podcast.ui.podcast.PodcastDetailsViewModel
 import com.mammoth.podcast.ui.shared.PreviewEpisodes
 import com.mammoth.podcast.ui.shared.PreviewPodcasts
 import com.mammoth.podcast.ui.theme.MammothTheme
@@ -212,7 +212,7 @@ fun MainScreen(
     windowSizeClass: WindowSizeClass,
     navigateToSearch: (String?) -> Unit,
     navigateToPlayer: (EpisodeInfo) -> Unit,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val homeScreenUiState by viewModel.state.collectAsStateWithLifecycle()
     when (val uiState = homeScreenUiState) {
@@ -275,7 +275,7 @@ private fun HomeScreenReady(
     windowSizeClass: WindowSizeClass,
     navigateToSearch: (String?) -> Unit,
     navigateToPlayer: (EpisodeInfo) -> Unit,
-    viewModel: HomeViewModel = HomeViewModel()
+    viewModel: HomeViewModel
 ) {
     val navigator = rememberSupportingPaneScaffoldNavigator<String>(
         scaffoldDirective = calculateScaffoldDirective(currentWindowAdaptiveInfo())
@@ -317,10 +317,8 @@ private fun HomeScreenReady(
                 value = navigator.scaffoldValue,
                 directive = navigator.scaffoldDirective,
                 supportingPane = {
-                    val podcastDetailsViewModel =
-                        PodcastDetailsViewModel(podcastUri = podcastUri)
                     PodcastDetailsScreen(
-                        viewModel = podcastDetailsViewModel,
+                        podcastUri = podcastUri,
                         navigateToPlayer = navigateToPlayer,
                         navigateBack = {
                             if (navigator.canNavigateBack()) {

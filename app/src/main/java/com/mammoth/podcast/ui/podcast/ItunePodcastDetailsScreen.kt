@@ -16,12 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mammoth.podcast.R
-import com.mammoth.podcast.data.network.PodcastRssResponse
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.data.network.PodcastRssResponse
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.shared.EpisodeListItem
 import kotlinx.coroutines.launch
 
@@ -30,7 +31,7 @@ fun ItunePodcastDetails(
     title: String = "",
     podcastUri: String,
     navigateToPlayer: (EpisodeInfo) -> Unit,
-    viewModel: ItunePodcastDetailsViewModel = viewModel(),
+    viewModel: ItunePodcastDetailsViewModel = hiltViewModel(),
     navigateBack: () -> Unit,
     showBackButton: Boolean = true
 ) {
@@ -103,9 +104,9 @@ fun ItunePodcastDetailsScreen(
                 val podcastItem = PodcastInfo(
                     uri = feeds.podcast.uri,
                     title = feeds.podcast.title,
-                    author = feeds.podcast.author?:"",
-                    imageUrl = feeds.podcast.imageUrl?:"",
-                    description = feeds.podcast.description?:"",
+                    author = feeds.podcast.author ?: "",
+                    imageUrl = feeds.podcast.imageUrl ?: "",
+                    description = feeds.podcast.description ?: "",
                 )
                 EpisodeListItem(
                     episode = episodeItem,

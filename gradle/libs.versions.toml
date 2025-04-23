@@ -14,6 +14,7 @@ androidx-constraintlayout = "1.1.0-alpha13"
 androidx-core-splashscreen = "1.0.1"
 androidx-corektx = "1.13.1"
 androidx-glance = "1.1.0"
+androidxHiltNavigationCompose = "1.2.0"
 androidx-lifecycle = "2.8.2"
 androidx-lifecycle-compose = "2.8.6"
 androidx-lifecycle-runtime-compose = "2.8.6"
@@ -30,10 +31,12 @@ androidx-window = "1.3.0"
 androix-test-uiautomator = "2.3.0"
 coil = "2.6.0"
 # @keep
-compileSdk = "34"
+compileSdk = "35"
 coroutines = "1.9.0"
 google-maps = "18.2.0"
 gradle-versions = "0.51.0"
+hiltAndroid = "2.56.1"
+hiltAndroidCompiler = "2.56.1"
 horologist = "0.6.20"
 # @pin When updating to AGP 7.4.0-alpha10 and up we can update this https://developer.android.com/studio/write/java8-support#library-desugaring-versions
 jdkDesugar = "1.2.2"
@@ -49,7 +52,7 @@ media3Common = "1.4.1"
 media3Exoplayer = "1.4.1"
 media3Session = "1.4.1"
 media3Ui = "1.4.1"
-minSdk = "21"
+minSdk = "26"
 okhttp = "4.11.0"
 play-services-wearable = "18.1.0"
 robolectric = "4.13"
@@ -61,6 +64,8 @@ secrets = "2.0.1"
 targetSdk = "33"
 version-catalog-update = "0.8.4"
 workRuntimeKtx = "2.10.0"
+material = "1.12.0"
+hilt = "2.56.1"
 
 [libraries]
 accompanist-adaptive = { module = "com.google.accompanist:accompanist-adaptive", version.ref = "accompanist" }
@@ -104,6 +109,7 @@ androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", versi
 androidx-glance = { module = "androidx.glance:glance", version.ref = "androidx-glance" }
 androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "androidx-glance" }
 androidx-glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "androidx-glance" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle-compose" }
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle-compose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle-runtime-compose" }
@@ -143,6 +149,8 @@ coil-kt-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 core-jdk-desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "jdkDesugar" }
 googlemaps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
 googlemaps-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "google-maps" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
 horologist-audio-ui = { module = "com.google.android.horologist:horologist-audio-ui", version.ref = "horologist" }
 horologist-composables = { module = "com.google.android.horologist:horologist-composables", version.ref = "horologist" }
 horologist-compose-layout = { module = "com.google.android.horologist:horologist-compose-layout", version.ref = "horologist" }
@@ -167,6 +175,7 @@ roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose"
 roborazzi-rule = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi" }
 rometools-modules = { module = "com.rometools:rome-modules", version.ref = "rome" }
 rometools-rome = { module = "com.rometools:rome", version.ref = "rome" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
@@ -174,11 +183,11 @@ android-library = { id = "com.android.library", version.ref = "androidGradlePlug
 android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
 compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 gradle-versions = { id = "com.github.ben-manes.versions", version.ref = "gradle-versions" }
-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets" }
 version-catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "version-catalog-update" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

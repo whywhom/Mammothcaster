@@ -3,14 +3,17 @@ package com.mammoth.podcast.ui.podcast
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mammoth.podcast.MammothCastApp
-import com.mammoth.podcast.data.repository.EpisodeStore
-import com.mammoth.podcast.data.repository.PodcastStore
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.domain.model.asExternalModel
-import com.mammoth.podcast.ui.player.EpisodePlayer
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.data.repository.EpisodeStore
+import com.mammoth.podcast.core.data.repository.PodcastStore
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.model.asExternalModel
+import com.mammoth.podcast.core.player.EpisodePlayer
+import com.mammoth.podcast.core.player.model.PlayerEpisode
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -28,16 +31,22 @@ sealed interface PodcastUiState {
 /**
  * ViewModel that handles the business logic and screen state of the Podcast details screen.
  */
-class PodcastDetailsViewModel(
-    private val episodeStore: EpisodeStore = MammothCastApp.episodeStore,
-    private val episodePlayer: EpisodePlayer = MammothCastApp.episodePlayer,
-    private val podcastStore: PodcastStore = MammothCastApp.podcastStore,
-    private val podcastUri: String,
+@HiltViewModel(assistedFactory = PodcastDetailsViewModel.PodcastDetailsViewModelFactory::class)
+class PodcastDetailsViewModel @AssistedInject constructor(
+    private val episodeStore: EpisodeStore,
+    private val episodePlayer: EpisodePlayer,
+    private val podcastStore: PodcastStore,
+    @Assisted val podcastUri: String,
 ) : ViewModel() {
+
+    @AssistedFactory
+    interface PodcastDetailsViewModelFactory {
+        fun create(podcastUri: String): PodcastDetailsViewModel
+    }
 
     private val decodedPodcastUri = Uri.decode(podcastUri)
 
-    val state: StateFlow<PodcastUiState> =
+    var state: StateFlow<PodcastUiState> =
         combine(
             podcastStore.podcastWithExtraInfo(decodedPodcastUri),
             episodeStore.episodesInPodcast(decodedPodcastUri)

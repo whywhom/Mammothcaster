@@ -6,8 +6,8 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.mammoth.podcast.service.DownloadWorker
-import com.mammoth.podcast.domain.model.EpisodeInfo
+import com.mammoth.podcast.core.data.repository.DownloadWorker
+import com.mammoth.podcast.core.model.EpisodeInfo
 
 fun enqueueEpisodeDownloads(episodesList: List<EpisodeInfo>, context: Context) {
     val workManager = WorkManager.getInstance(context)

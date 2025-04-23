@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalContext
  *
  * @param id the resource identifier
  * @param quantity The number used to get the string for the current language's plural rules.
- * @return the string data associated with the resource
+ * @return the string com.mammoth.podcast.core.data associated with the resource
  */
 @Composable
 fun quantityStringResource(@PluralsRes id: Int, quantity: Int): String {
@@ -23,7 +23,7 @@ fun quantityStringResource(@PluralsRes id: Int, quantity: Int): String {
  * @param id the resource identifier
  * @param quantity The number used to get the string for the current language's plural rules.
  * @param formatArgs the format arguments
- * @return the string data associated with the resource
+ * @return the string com.mammoth.podcast.core.data associated with the resource
  */
 @Composable
 fun quantityStringResource(@PluralsRes id: Int, quantity: Int, vararg formatArgs: Any): String {

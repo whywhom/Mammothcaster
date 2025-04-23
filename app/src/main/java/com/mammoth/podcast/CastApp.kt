@@ -8,7 +8,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.window.layout.DisplayFeature
@@ -24,14 +24,12 @@ import com.mammoth.podcast.Screen.Companion.ARG_EPISODE_URI
 import com.mammoth.podcast.Screen.Companion.ARG_ITUNE_TITLE
 import com.mammoth.podcast.Screen.Companion.ARG_ITUNE_URI
 import com.mammoth.podcast.Screen.Companion.ARG_SEARCH_QUERY
-import com.mammoth.podcast.ui.home.HomeViewModel
 import com.mammoth.podcast.ui.home.MainScreen
 import com.mammoth.podcast.ui.home.search.SearchScreen
 import com.mammoth.podcast.ui.player.PlayerScreen
 import com.mammoth.podcast.ui.player.PlayerViewModel
 import com.mammoth.podcast.ui.podcast.ItunePodcastDetails
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CastApp(
     displayFeatures: List<DisplayFeature>,
@@ -55,17 +53,15 @@ fun CastApp(
                     navigateToPlayer = { episode ->
                         appState.navigateToPlayer(episode, backStackEntry)
                     },
-                    viewModel = HomeViewModel()
                 )
             }
             composable(Screen.Player.route) { backStackEntry ->
                 val arguments = backStackEntry.arguments
                 val uri = arguments?.getString(ARG_EPISODE_URI)
                 uri?.let {
-                    val viewModel = PlayerViewModel(
-                        episodeUri = it,
-                        context = MammothCastApp.appContext
-                    )
+                    val viewModel = hiltViewModel<PlayerViewModel, PlayerViewModel.PlayerViewModelFactory> { factory ->
+                        factory.create(it)
+                    }
                     PlayerScreen(
                         windowSizeClass = adaptiveInfo.windowSizeClass,
                         displayFeatures = displayFeatures,

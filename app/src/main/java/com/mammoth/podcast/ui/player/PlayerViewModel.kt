@@ -1,12 +1,16 @@
 package com.mammoth.podcast.ui.player
 
 import android.annotation.SuppressLint
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mammoth.podcast.MammothCastApp
-import com.mammoth.podcast.data.repository.EpisodeStore
-import com.mammoth.podcast.ui.player.model.toPlayerEpisode
+import com.mammoth.podcast.core.data.repository.EpisodeStore
+import com.mammoth.podcast.core.player.EpisodePlayer
+import com.mammoth.podcast.core.player.EpisodePlayerState
+import com.mammoth.podcast.core.player.model.toPlayerEpisode
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,12 +28,17 @@ data class PlayerUiState(
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @SuppressLint("StaticFieldLeak")
-class PlayerViewModel(
-    val context: Context,
-    episodeStore: EpisodeStore = MammothCastApp.episodeStore,
-    private val episodePlayer: EpisodePlayer = MammothCastApp.episodePlayer,
-    episodeUri: String
+@HiltViewModel(assistedFactory = PlayerViewModel.PlayerViewModelFactory::class)
+class PlayerViewModel @AssistedInject constructor(
+    private val episodeStore: EpisodeStore,
+    private val episodePlayer: EpisodePlayer,
+    @Assisted episodeUri: String
 ) : ViewModel() {
+
+    @AssistedFactory
+    interface PlayerViewModelFactory {
+        fun create(episodeUri: String): PlayerViewModel
+    }
 
     private var _uiState = MutableStateFlow(PlayerUiState())
     var uiState: StateFlow<PlayerUiState> = _uiState

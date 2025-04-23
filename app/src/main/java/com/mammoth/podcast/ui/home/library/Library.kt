@@ -12,10 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mammoth.podcast.R
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.LibraryInfo
-import com.mammoth.podcast.theme.Keyline1
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.designsystem.theme.Keyline1
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.LibraryInfo
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.shared.EpisodeListItem
 import com.mammoth.podcast.util.fullWidthItem
 

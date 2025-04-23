@@ -1,0 +1,4 @@
+<resources>
+    <string name="content_description_play">Play</string>
+    <string name="content_description_pause">Pause</string>
+</resources>
