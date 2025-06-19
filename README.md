@@ -1,3 +1,15 @@
+## Project Structure
+
+- UI Layer: Includes Podcast list, Episode list, and playback controls.
+
+- Network Layer: Uses OkHttp for API requests.
+
+- Data Layer: Utilizes Room for persistent storage and data updates.
+
+- Audio Playback: Implements ExoPlayer to play content, supporting background playback.
+
+- RSS Parsing: Uses Rome to parse data from podcast subscription feeds.
+
 ## 项目结构
 
 - UI层：包括 Podcast 列表、Episode 列表以及播放控件。
