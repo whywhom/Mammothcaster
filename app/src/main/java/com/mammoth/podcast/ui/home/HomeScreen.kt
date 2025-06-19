@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -30,7 +30,6 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -38,15 +37,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -54,6 +48,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.Posture
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
@@ -68,37 +63,42 @@ import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaffoldNavigator
 import androidx.compose.material3.adaptive.occludingVerticalHingeBounds
 import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
-import com.mammoth.podcast.ui.podcast.PodcastDetailsScreen
-import com.mammoth.podcast.ui.podcast.PodcastDetailsViewModel
 import com.mammoth.podcast.R
-import com.mammoth.podcast.component.PodcastImage
-import com.mammoth.podcast.domain.model.CategoryInfo
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.FilterableCategoriesModel
-import com.mammoth.podcast.domain.model.LibraryInfo
-import com.mammoth.podcast.domain.model.PodcastCategoryFilterResult
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.domain.model.PodcastToEpisodeInfo
+import com.mammoth.podcast.core.designsystem.component.PodcastImage
+import com.mammoth.podcast.core.model.CategoryInfo
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.FilterableCategoriesModel
+import com.mammoth.podcast.core.model.LibraryInfo
+import com.mammoth.podcast.core.model.PodcastCategoryFilterResult
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.model.PodcastToEpisodeInfo
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.home.discover.discoverItems
 import com.mammoth.podcast.ui.home.library.libraryItems
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.ui.podcast.PodcastDetailsScreen
 import com.mammoth.podcast.ui.shared.PreviewEpisodes
 import com.mammoth.podcast.ui.shared.PreviewPodcasts
 import com.mammoth.podcast.ui.theme.MammothTheme
@@ -210,8 +210,9 @@ private fun getExcludedVerticalBounds(posture: Posture, hingePolicy: HingePolicy
 @Composable
 fun MainScreen(
     windowSizeClass: WindowSizeClass,
+    navigateToSearch: (String?) -> Unit,
     navigateToPlayer: (EpisodeInfo) -> Unit,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val homeScreenUiState by viewModel.state.collectAsStateWithLifecycle()
     when (val uiState = homeScreenUiState) {
@@ -221,6 +222,7 @@ fun MainScreen(
             HomeScreenReady(
                 uiState = uiState,
                 windowSizeClass = windowSizeClass,
+                navigateToSearch = navigateToSearch,
                 navigateToPlayer = navigateToPlayer,
                 viewModel = viewModel,
             )
@@ -271,8 +273,9 @@ fun HomeScreenErrorPreview() {
 private fun HomeScreenReady(
     uiState: HomeScreenUiState.Ready,
     windowSizeClass: WindowSizeClass,
+    navigateToSearch: (String?) -> Unit,
     navigateToPlayer: (EpisodeInfo) -> Unit,
-    viewModel: HomeViewModel = HomeViewModel()
+    viewModel: HomeViewModel
 ) {
     val navigator = rememberSupportingPaneScaffoldNavigator<String>(
         scaffoldDirective = calculateScaffoldDirective(currentWindowAdaptiveInfo())
@@ -306,6 +309,7 @@ private fun HomeScreenReady(
         if (podcastUri.isNullOrEmpty()) {
             HomeScreen(
                 homeState = homeState,
+                navigateToSearch = navigateToSearch,
                 modifier = Modifier.fillMaxSize()
             )
         } else {
@@ -313,10 +317,8 @@ private fun HomeScreenReady(
                 value = navigator.scaffoldValue,
                 directive = navigator.scaffoldDirective,
                 supportingPane = {
-                    val podcastDetailsViewModel =
-                        PodcastDetailsViewModel(podcastUri = podcastUri)
                     PodcastDetailsScreen(
-                        viewModel = podcastDetailsViewModel,
+                        podcastUri = podcastUri,
                         navigateToPlayer = navigateToPlayer,
                         navigateBack = {
                             if (navigator.canNavigateBack()) {
@@ -329,6 +331,7 @@ private fun HomeScreenReady(
                 mainPane = {
                     HomeScreen(
                         homeState = homeState,
+                        navigateToSearch = navigateToSearch,
                         modifier = Modifier.fillMaxSize()
                     )
                 },
@@ -341,6 +344,7 @@ private fun HomeScreenReady(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeAppBar(
+    navigateToSearch: (String?) -> Unit,
     isExpanded: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -356,30 +360,25 @@ private fun HomeAppBar(
     ) {
         SearchBar(
             inputField = {
-                SearchBarDefaults.InputField(
-                    query = queryText,
-                    onQueryChange = { queryText = it },
-                    onSearch = {},
-                    expanded = false,
-                    onExpandedChange = {},
-                    enabled = true,
-                    placeholder = {
-                        Text(stringResource(id = R.string.search_for_a_podcast))
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null
-                        )
-                    },
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused) {
+                                navigateToSearch("")
+                            }
+                        },
+                    value = stringResource(id = R.string.search_for_a_podcast),
+                    onValueChange = {}, // No-op
+                    shape = RoundedCornerShape(32.dp),
+                    enabled = true, // Disables user input
                     trailingIcon = {
                         Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = stringResource(R.string.cd_account)
+                            modifier = Modifier.clickable{ navigateToSearch("") },
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
                         )
-                    },
-                    interactionSource = null,
-                    modifier = if (isExpanded) Modifier.fillMaxWidth() else Modifier
+                    }
                 )
             },
             expanded = false,
@@ -409,6 +408,7 @@ private fun HomeScreenBackground(
 @Composable
 private fun HomeScreen(
     homeState: HomeState,
+    navigateToSearch: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Effect that changes the home category selection when there are no subscribed podcasts
@@ -426,6 +426,7 @@ private fun HomeScreen(
         Scaffold(
             topBar = {
                 HomeAppBar(
+                    navigateToSearch = navigateToSearch,
                     isExpanded = homeState.windowSizeClass.isCompact,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -774,12 +775,12 @@ private fun lastUpdated(updated: OffsetDateTime): String {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Composable
 private fun HomeAppBarPreview() {
     MammothTheme {
         HomeAppBar(
+            navigateToSearch = { },
             isExpanded = false,
         )
     }
@@ -814,6 +815,7 @@ private fun PreviewHome() {
             onQueueEpisode = {}
         )
         HomeScreen(
+            navigateToSearch = { },
             homeState = homeState,
         )
     }
@@ -871,7 +873,8 @@ private fun HomeScreenReady(
 
 @Composable
 fun HomeScreenLoading() {
-    Box {
+    Box( modifier = Modifier
+        .fillMaxSize()) {
         CircularProgressIndicator(
             modifier = Modifier.align(Alignment.Center)
         )

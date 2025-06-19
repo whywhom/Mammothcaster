@@ -1,20 +1,26 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose)
+    alias(libs.plugins.hilt)
+}
+
+val versionProps = Properties().apply {
+    load(File(rootDir, "version.properties").inputStream())
 }
 
 android {
     namespace = "com.mammoth.podcast"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.mammoth.podcast"
-        minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.1"
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.compileSdk.get().toInt()
+        versionCode = versionProps["VERSION_CODE"].toString().toInt()
+        versionName = versionProps["VERSION_NAME"].toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -45,10 +51,18 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.2"
     }
-
-    packagingOptions {
-        exclude("rome-utils-1.18.0.jar")
+    buildFeatures {
+        buildConfig = true
     }
+    packaging {
+        resources {
+            excludes += "rome-utils-" + libs.rometools.rome.get().version + ".jar"
+        }
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -56,7 +70,6 @@ dependencies {
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
-    androidTestImplementation(composeBom)
 
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
@@ -102,14 +115,19 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    // Networking
-    implementation(libs.okhttp3)
-    implementation(libs.okhttp.logging)
+    // Hilt
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
 
-    // Database
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
+//    // Networking
+//    implementation(libs.okhttp3)
+//    implementation(libs.okhttp.logging)
+//
+//    // Database
+//    implementation(libs.androidx.room.runtime)
+//    implementation(libs.androidx.room.ktx)
+//    ksp(libs.androidx.room.compiler)
 
     implementation(libs.rometools.rome)
     implementation(libs.rometools.modules)
@@ -124,4 +142,9 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    implementation(project(":core:data"))
+    implementation(project(":mammothwidget"))
+    implementation(project(":core:domain"))
+    implementation(project(":core:designsystem"))
 }

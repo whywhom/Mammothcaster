@@ -15,11 +15,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.mammoth.podcast.domain.model.EpisodeInfo
+import com.mammoth.podcast.core.model.EpisodeInfo
 
 sealed class Screen(val route: String) {
 
-    data object Home : Screen("home")
+    data object Home : Screen(NAVIGATOR_HOME)
 
     data object Player : Screen("player/{$ARG_EPISODE_URI}") {
         fun createRoute(episodeUri: String) :String {
@@ -32,9 +32,29 @@ sealed class Screen(val route: String) {
         fun createRoute(podcastUri: String) = "podcast/$podcastUri"
     }
 
+    data object ItunePodcastDetails : Screen("itune/{$ARG_ITUNE_URI}/{$ARG_ITUNE_TITLE}") {
+        fun createRoute(ituneUri: String, title:String):String {
+            val path = "itune/$ituneUri/$title"
+            return path
+        }
+    }
+
+    data object Search : Screen("search/{$ARG_SEARCH_QUERY}") {
+        fun createRoute(query: String?):String {
+            val path = "search/$query"
+            return path
+        }
+    }
+
     companion object {
         val ARG_PODCAST_URI = "podcastUri"
+        val ARG_ITUNE_URI = "ituneUri"
+        val ARG_ITUNE_TITLE = "ituneTitle"
         val ARG_EPISODE_URI = "episodeUri"
+        val ARG_SEARCH_QUERY = "searchContent"
+
+        const val NAVIGATOR_HOME = "home"
+        const val NAVIGATOR_SEARCH = "search"
     }
 }
 
@@ -62,6 +82,12 @@ class CastAppState(
         if (from.lifecycleIsResumed()) {
             val encodedUri = Uri.encode(episode.uri)
             navController.navigate(Screen.Player.createRoute(encodedUri))
+        }
+    }
+
+    fun navigateToSearch(query: String?, from: NavBackStackEntry) {
+        if (from.lifecycleIsResumed()) {
+            navController.navigate(Screen.Search.createRoute(""))
         }
     }
 

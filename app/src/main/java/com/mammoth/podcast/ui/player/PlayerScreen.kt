@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,7 +65,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -76,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -85,10 +84,11 @@ import com.google.accompanist.adaptive.HorizontalTwoPaneStrategy
 import com.google.accompanist.adaptive.TwoPane
 import com.google.accompanist.adaptive.VerticalTwoPaneStrategy
 import com.mammoth.podcast.R
-import com.mammoth.podcast.component.HtmlTextContainer
-import com.mammoth.podcast.component.ImageBackgroundColorScrim
-import com.mammoth.podcast.component.PodcastImage
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.designsystem.component.HtmlTextContainer
+import com.mammoth.podcast.core.designsystem.component.ImageBackgroundColorScrim
+import com.mammoth.podcast.core.designsystem.component.PodcastImage
+import com.mammoth.podcast.core.player.EpisodePlayerState
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.theme.MammothTheme
 import com.mammoth.podcast.util.isBookPosture
 import com.mammoth.podcast.util.isSeparatingPosture
@@ -264,10 +264,10 @@ fun PlayerContent(
         // or we have an impactful horizontal fold. Otherwise, we'll use a horizontal strategy.
         val usingVerticalStrategy =
             isTableTopPosture(foldingFeature) ||
-                (
-                    isSeparatingPosture(foldingFeature) &&
-                        foldingFeature.orientation == FoldingFeature.Orientation.HORIZONTAL
-                    )
+                    (
+                            isSeparatingPosture(foldingFeature) &&
+                                    foldingFeature.orientation == FoldingFeature.Orientation.HORIZONTAL
+                            )
 
         if (usingVerticalStrategy) {
             TwoPane(
@@ -856,9 +856,13 @@ fun TopAppBarPreview() {
 @Preview
 @Composable
 fun PlayerButtonsPreview() {
+    val playerViewModel: PlayerViewModel =
+        hiltViewModel<PlayerViewModel, PlayerViewModel.PlayerViewModelFactory> { factory ->
+            factory.create("")
+        }
     MammothTheme {
         PlayerButtons(
-            viewModel = PlayerViewModel(context = LocalContext.current, episodeUri = ""),
+            viewModel = playerViewModel,
             hasNext = false,
             isPlaying = true,
             onPlayPress = {},
@@ -873,11 +877,15 @@ fun PlayerButtonsPreview() {
 
 @Composable
 fun PlayerScreenPreview() {
+    val playerViewModel: PlayerViewModel =
+        hiltViewModel<PlayerViewModel, PlayerViewModel.PlayerViewModelFactory> { factory ->
+            factory.create("")
+        }
     MammothTheme {
         BoxWithConstraints {
             PlayerScreen(
-                viewModel = PlayerViewModel(context = LocalContext.current, episodeUri = ""),
-                PlayerUiState(
+                viewModel = playerViewModel,
+                uiState = PlayerUiState(
                     episodePlayerState = EpisodePlayerState(
                         currentEpisode = PlayerEpisode(
                             title = "Title",

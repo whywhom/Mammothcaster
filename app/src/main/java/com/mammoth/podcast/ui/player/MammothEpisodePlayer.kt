@@ -11,9 +11,12 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import com.mammoth.podcast.core.data.util.DownloadState
+import com.mammoth.podcast.core.player.DefaultPlaybackSpeed
+import com.mammoth.podcast.core.player.EpisodePlayer
+import com.mammoth.podcast.core.player.EpisodePlayerState
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.service.MediaPlayerService
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
-import com.mammoth.podcast.util.DownloadState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

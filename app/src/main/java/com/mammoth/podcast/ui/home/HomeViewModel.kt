@@ -4,22 +4,23 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mammoth.podcast.MammothCastApp
-import com.mammoth.podcast.data.database.model.EpisodeToPodcast
-import com.mammoth.podcast.data.repository.EpisodeStore
-import com.mammoth.podcast.data.repository.PodcastStore
-import com.mammoth.podcast.data.repository.PodcastsRepository
-import com.mammoth.podcast.domain.FilterableCategoriesUseCase
-import com.mammoth.podcast.domain.PodcastCategoryFilterUseCase
-import com.mammoth.podcast.domain.model.CategoryInfo
-import com.mammoth.podcast.domain.model.FilterableCategoriesModel
-import com.mammoth.podcast.domain.model.LibraryInfo
-import com.mammoth.podcast.domain.model.PodcastCategoryFilterResult
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.domain.model.asExternalModel
-import com.mammoth.podcast.domain.model.asPodcastToEpisodeInfo
-import com.mammoth.podcast.ui.player.EpisodePlayer
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.data.database.model.EpisodeToPodcast
+import com.mammoth.podcast.core.data.repository.EpisodeStore
+import com.mammoth.podcast.core.data.repository.PodcastStore
+import com.mammoth.podcast.core.data.repository.PodcastsRepository
+import com.mammoth.podcast.core.domain.FilterableCategoriesUseCase
+import com.mammoth.podcast.core.domain.PodcastCategoryFilterUseCase
+import com.mammoth.podcast.core.model.CategoryInfo
+import com.mammoth.podcast.core.model.FilterableCategoriesModel
+import com.mammoth.podcast.core.model.LibraryInfo
+import com.mammoth.podcast.core.model.PodcastCategoryFilterResult
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.model.asExternalModel
+import com.mammoth.podcast.core.model.asPodcastToEpisodeInfo
+import com.mammoth.podcast.core.player.EpisodePlayer
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.util.combine
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -31,17 +32,19 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class HomeViewModel(
-    private val podcastsRepository: PodcastsRepository = PodcastsRepository(),
-    private val podcastStore: PodcastStore = MammothCastApp.podcastStore,
-    private val episodeStore: EpisodeStore = MammothCastApp.episodeStore,
-    private val podcastCategoryFilterUseCase: PodcastCategoryFilterUseCase = PodcastCategoryFilterUseCase(),
-    private val filterableCategoriesUseCase: FilterableCategoriesUseCase = FilterableCategoriesUseCase(),
-    private val episodePlayer: EpisodePlayer = MammothCastApp.episodePlayer,
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val podcastsRepository: PodcastsRepository,
+    private val podcastStore: PodcastStore,
+    private val episodeStore: EpisodeStore,
+    private val podcastCategoryFilterUseCase: PodcastCategoryFilterUseCase,
+    private val filterableCategoriesUseCase: FilterableCategoriesUseCase,
+    private val episodePlayer: EpisodePlayer,
 ) : ViewModel() {
-    // Holds the view state if the UI is refreshing for new data
+    // Holds the view state if the UI is refreshing for new com.mammoth.podcast.core.data
     private val refreshing = MutableStateFlow(false)
     // Holds our currently selected podcast in the library
     private val selectedLibraryPodcast = MutableStateFlow<PodcastInfo?>(null)
@@ -130,7 +133,6 @@ class HomeViewModel(
                 podcastsRepository.updatePodcasts(force)
             }
             // TODO: look at result of runCatching and show any errors
-
             refreshing.value = false
         }
     }

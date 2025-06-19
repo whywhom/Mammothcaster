@@ -50,29 +50,36 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mammoth.podcast.R
-import com.mammoth.podcast.component.PodcastImage
-import com.mammoth.podcast.domain.model.EpisodeInfo
-import com.mammoth.podcast.domain.model.PodcastInfo
-import com.mammoth.podcast.theme.Keyline1
-import com.mammoth.podcast.ui.player.model.PlayerEpisode
+import com.mammoth.podcast.core.designsystem.component.PodcastImage
+import com.mammoth.podcast.core.designsystem.theme.Keyline1
+import com.mammoth.podcast.core.model.EpisodeInfo
+import com.mammoth.podcast.core.model.PodcastInfo
+import com.mammoth.podcast.core.player.model.PlayerEpisode
 import com.mammoth.podcast.ui.shared.EpisodeListItem
+import com.mammoth.podcast.ui.shared.Loading
 import com.mammoth.podcast.ui.shared.PreviewEpisodes
 import com.mammoth.podcast.ui.shared.PreviewPodcasts
-import com.mammoth.podcast.ui.shared.Loading
-import kotlinx.coroutines.launch
 import com.mammoth.podcast.util.fullWidthItem
+import kotlinx.coroutines.launch
 
 @Composable
 fun PodcastDetailsScreen(
-    viewModel: PodcastDetailsViewModel,
     navigateToPlayer: (EpisodeInfo) -> Unit,
     navigateBack: () -> Unit,
     showBackButton: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    podcastUri: String
 ) {
+
+    val viewModel = hiltViewModel<PodcastDetailsViewModel, PodcastDetailsViewModel.PodcastDetailsViewModelFactory> { factory ->
+        factory.create(podcastUri)
+    }
+
     val state by viewModel.state.collectAsStateWithLifecycle()
+
     when (val s = state) {
         is PodcastUiState.Loading -> {
             PodcastDetailsLoadingScreen(
@@ -325,11 +332,12 @@ fun PodcastDetailsHeaderItemButtons(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PodcastDetailsTopAppBar(
+    title: String = "",
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
-        title = { },
+        title = { Text(text = title) },
         navigationIcon = {
             IconButton(onClick = navigateBack) {
                 Icon(

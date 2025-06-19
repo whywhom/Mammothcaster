@@ -21,4 +21,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "Mammothcast"
 include(":app")
- 
+include(":core:data")
+include(":mammothwidget")
+include(":core:designsystem")
+include(":core:domain")
