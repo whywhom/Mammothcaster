@@ -67,16 +67,6 @@ This project uses a modern Android tech stack with several powerful third-party 
 
 ## ScreenShots
 
-[<img src="/screenshots/homescreen.png" align="left"
-width="200"
-hspace="10" vspace="10">](screenshots/homescreen.png)
-[<img src="/screenshots/detailscreen.png" align="center"
-width="200"
-hspace="10" vspace="10">](screenshots/detailscreen.png)
-[<img src="/screenshots/homescreenwithsubscribe.png" align="right"
-width="200"
-hspace="10" vspace="10">](screenshots/homescreenwithsubscribe.png)
-
 <div>
   <img src="screenshots/homescreen.png" width="200" style="display:inline-block; margin:10px;" />
   <img src="screenshots/detailscreen.png" width="200" style="display:inline-block; margin:10px;" />
