@@ -77,6 +77,14 @@ hspace="10" vspace="10">](screenshots/detailscreen.png)
 width="200"
 hspace="10" vspace="10">](screenshots/homescreenwithsubscribe.png)
 
+<div>
+  <img src="screenshots/homescreen.png" width="200" style="display:inline-block; margin:10px;" />
+  <img src="screenshots/detailscreen.png" width="200" style="display:inline-block; margin:10px;" />
+  <img src="screenshots/homescreenwithsubscribe.png" width="200" style="display:inline-block; margin:10px;" />
+
+  <img src="screenshots/playscreen.png" width="200" style="display:inline-block; margin:10px;" />
+  <img src="screenshots/notificationui.png" width="200" style="display:inline-block; margin:10px;" />
+</div>
 
 ## 项目结构
 
