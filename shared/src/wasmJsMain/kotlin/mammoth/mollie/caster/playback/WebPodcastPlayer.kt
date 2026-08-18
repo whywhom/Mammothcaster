@@ -56,7 +56,9 @@ class WebPodcastPlayer : PodcastPlayer {
         audio.play()
     }
 
-    override fun toggle() = if (audio.paused) audio.play() else audio.pause()
+    override fun toggle() {
+        if (audio.paused) audio.play() else audio.pause()
+    }
     override fun seekTo(positionMillis: Long) { audio.currentTime = positionMillis.coerceAtLeast(0) / 1000.0; publish(if (audio.paused) PlayerStatus.Paused else PlayerStatus.Playing) }
     override fun skipBy(deltaMillis: Long) = seekTo(state.value.positionMillis + deltaMillis)
     override fun setSpeed(speed: Float) { if (speed in PreviewPodcastPlayer.SPEEDS) { audio.playbackRate = speed.toDouble(); mutableState.value = mutableState.value.copy(speed = speed) } }

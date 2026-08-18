@@ -96,6 +96,7 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.sqlite.web)
+            implementation("org.jetbrains.kotlinx:kotlinx-browser:0.5.0")
         }
     }
 
@@ -175,6 +176,9 @@ compose.desktop {
     application {
         mainClass = "mammoth.mollie.caster.MainKt"
         desktopPackagingJavaHome?.let { javaHome = it }
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("proguard-rules.pro"))
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Molliecaster"

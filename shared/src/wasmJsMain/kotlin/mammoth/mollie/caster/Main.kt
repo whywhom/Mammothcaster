@@ -6,7 +6,7 @@ import androidx.compose.ui.window.ComposeViewport
 import mammoth.mollie.caster.data.MollieStore
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
 import mammoth.mollie.caster.playback.WebPodcastPlayer
-import web.dom.document
+import kotlinx.browser.document
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {

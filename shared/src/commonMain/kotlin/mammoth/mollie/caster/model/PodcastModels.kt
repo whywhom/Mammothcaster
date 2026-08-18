@@ -1,10 +1,8 @@
 package mammoth.mollie.caster.model
 
-@JvmInline
-value class PodcastId(val value: String)
+data class PodcastId(val value: String)
 
-@JvmInline
-value class EpisodeId(val value: String)
+data class EpisodeId(val value: String)
 
 enum class EpisodeOrder { Newest, Oldest }
 
