@@ -1,0 +1,4 @@
+interface:
+  display_name: "Molliecaster Product UI"
+  short_description: "Build adaptive podcast discovery and library UI"
+  default_prompt: "Use $build-molliecaster-product-ui to implement and verify Molliecaster screens and adaptive Compose Multiplatform UI."

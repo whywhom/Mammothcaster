@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aether - Player</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;700&amp;family=Space+Grotesk:wght@400;500;700&amp;family=Hanken+Grotesk:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#958ea0",
+                        "surface-tint": "#d0bcff",
+                        "primary-container": "#a078ff",
+                        "on-background": "#e4e1e9",
+                        "background": "#131318",
+                        "surface-container-high": "#2a292f",
+                        "on-secondary": "#003731",
+                        "tertiary-container": "#9c89b3",
+                        "on-surface": "#e4e1e9",
+                        "error-container": "#93000a",
+                        "inverse-on-surface": "#303036",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#3cddc7",
+                        "surface-container": "#1f1f25",
+                        "surface-variant": "#35343a",
+                        "on-secondary-fixed-variant": "#005047",
+                        "inverse-primary": "#6d3bd7",
+                        "on-tertiary": "#38294d",
+                        "on-tertiary-fixed": "#231437",
+                        "on-primary": "#3c0091",
+                        "secondary": "#44e2cd",
+                        "on-primary-fixed-variant": "#5516be",
+                        "on-tertiary-fixed-variant": "#4f4065",
+                        "tertiary-fixed": "#eddcff",
+                        "error": "#ffb4ab",
+                        "surface-dim": "#131318",
+                        "surface-container-highest": "#35343a",
+                        "surface": "#131318",
+                        "outline-variant": "#494454",
+                        "on-tertiary-container": "#312246",
+                        "primary-fixed-dim": "#d0bcff",
+                        "on-secondary-container": "#004d44",
+                        "primary": "#d0bcff",
+                        "tertiary-fixed-dim": "#d3beeb",
+                        "surface-container-lowest": "#0e0e13",
+                        "surface-container-low": "#1b1b20",
+                        "on-error": "#690005",
+                        "on-primary-fixed": "#23005c",
+                        "secondary-container": "#03c6b2",
+                        "on-surface-variant": "#cbc3d7",
+                        "surface-bright": "#39383e",
+                        "on-primary-container": "#340080",
+                        "on-secondary-fixed": "#00201c",
+                        "inverse-surface": "#e4e1e9",
+                        "tertiary": "#d3beeb",
+                        "primary-fixed": "#e9ddff",
+                        "secondary-fixed": "#62fae3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "section-margin": "40px",
+                        "stack-sm": "8px",
+                        "element-gap": "16px",
+                        "stack-lg": "32px",
+                        "unit": "4px",
+                        "container-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["EB Garamond"],
+                        "label-sm": ["Space Grotesk"],
+                        "headline-lg": ["EB Garamond"],
+                        "title-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["EB Garamond"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["42px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "title-md": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #131318;
+            /* Dynamic background simulation based on artwork colors */
+            background-image: 
+                radial-gradient(circle at 80% 20%, rgba(109, 59, 215, 0.2) 0%, transparent 60%),
+                radial-gradient(circle at 20% 80%, rgba(68, 226, 205, 0.15) 0%, transparent 60%);
+            color: #e4e1e9;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(42, 41, 47, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bloom-glow {
+            box-shadow: 0 0 24px -4px rgba(160, 120, 255, 0.6);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #d0bcff, #44e2cd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes pulse-aura {
+            0% { box-shadow: 0 0 30px 0px rgba(109, 59, 215, 0.4); }
+            50% { box-shadow: 0 0 60px 20px rgba(68, 226, 205, 0.3); }
+            100% { box-shadow: 0 0 30px 0px rgba(109, 59, 215, 0.4); }
+        }
+        
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .art-aura {
+            animation: pulse-aura 4s infinite ease-in-out;
+        }
+        
+        .art-spin {
+            animation: rotate-slow 20s linear infinite;
+        }
+
+        .progress-trail {
+            box-shadow: 0 0 10px 2px rgba(68, 226, 205, 0.6);
+        }
+
+        /* Material Symbols Outline setup */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen relative font-body-md text-body-md antialiased">
+<!-- Atmospheric Background Animation -->
+<div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+<div class="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-primary-container opacity-20 blur-[100px] mix-blend-screen animate-[pulse-aura_10s_infinite]"></div>
+<div class="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-secondary-container opacity-20 blur-[100px] mix-blend-screen animate-[pulse-aura_12s_infinite_reverse]"></div>
+</div>
+<!-- Draggable Handle Indicator for Mini-Player state -->
+<div class="absolute top-0 left-0 w-full flex justify-center pt-3 z-50 pointer-events-none">
+<div class="w-12 h-1.5 bg-on-surface-variant/40 rounded-full"></div>
+</div>
+<!-- Top Navigation -->
+<header class="relative z-50 flex justify-between items-center w-full px-6 py-4 pt-8 top-0 glass-panel border-b-0 shadow-none">
+<button aria-label="Collapse Player" class="text-on-surface-variant hover:text-primary transition-colors p-2">
+<span class="material-symbols-outlined">expand_more</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-widest">Now Playing</span>
+<span class="font-title-md text-title-md text-primary truncate max-w-[200px]">Cosmic Echoes Podcast</span>
+</div>
+<button aria-label="More Options" class="text-on-surface-variant hover:text-primary transition-colors p-2">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="relative z-10 flex-grow flex flex-col items-center justify-center px-container-padding py-stack-lg w-full max-w-lg mx-auto">
+<!-- Artwork -->
+<div class="relative w-64 h-64 md:w-80 md:h-80 rounded-full mb-section-margin flex-shrink-0">
+<!-- Aura/Glow Layer -->
+<div class="absolute inset-0 rounded-full art-aura"></div>
+<!-- Image Layer -->
+<div class="absolute inset-0 rounded-full overflow-hidden border border-white/10 glass-panel">
+<img alt="Album Art" class="w-full h-full object-cover art-spin" data-alt="Abstract, high-fidelity digital art representing a deep-space nebula with swirling clouds of dark purple, neon violet, and ethereal teal. The composition is circular, set against a starless obsidian black background. The style is cosmic noir, conveying a sense of mystery and sophisticated sonic immersion." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBx-BMuDmUa0G4UH4DeD_3SFAGP-EUzPdH82rCpxpy5zZvoT_9_-Su9R8ve7oBG77lA3hcWY3zQutXZqTKXA11KwuO3FUpmK-BWJKTrAI2fYn0jzLhakqbICurS5F42VWjUqXbJWrN8XLObtQUL4NOG3L8ngQGPoVGlAkSTSXVjvarrrenwemdO4EuQSi65uL6e2JMDM7DkxGFHFcs1BLR36t36uf1JSS-JWZAfxWod2TP0OHCk3Lhf"/>
+</div>
+<!-- Center Hole (Vinyl look) -->
+<div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background border border-white/10 shadow-inner z-10"></div>
+</div>
+<!-- Track Info -->
+<div class="text-center w-full mb-stack-lg">
+<h1 class="font-display-lg text-headline-lg-mobile md:text-display-lg text-on-surface mb-stack-sm truncate">The Silent Pulsar</h1>
+<h2 class="font-title-md text-title-md text-primary-fixed-dim opacity-80 truncate">Dr. Aris Thorne</h2>
+</div>
+<!-- Progress Bar -->
+<div class="w-full mb-stack-lg flex flex-col gap-2">
+<div class="relative h-1 bg-surface-variant rounded-full cursor-pointer group">
+<div class="absolute top-0 left-0 h-full w-1/3 bg-secondary rounded-full progress-trail relative">
+<!-- Seeker Head -->
+<div class="absolute right-[-4px] top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full bloom-glow opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+<div class="flex justify-between w-full font-label-sm text-label-sm text-outline">
+<span>14:23</span>
+<span>-45:10</span>
+</div>
+</div>
+<!-- Primary Controls -->
+<div class="flex items-center justify-center gap-element-gap w-full mb-stack-lg">
+<button aria-label="Rewind 15 Seconds" class="text-on-surface hover:text-primary transition-colors p-3">
+<span class="material-symbols-outlined text-[32px]">replay_10</span>
+</button>
+<button aria-label="Play" class="w-20 h-20 rounded-full bg-gradient-to-br from-primary-container to-secondary-container flex items-center justify-center text-on-primary-container bloom-glow hover:scale-105 transition-transform">
+<span class="material-symbols-outlined filled text-[40px] ml-1">play_arrow</span>
+</button>
+<button aria-label="Fast Forward 15 Seconds" class="text-on-surface hover:text-primary transition-colors p-3">
+<span class="material-symbols-outlined text-[32px]">forward_10</span>
+</button>
+</div>
+<!-- Secondary Controls (Utility Grouping) -->
+<div class="flex items-center justify-between w-full px-4 text-on-surface-variant font-label-sm text-label-sm">
+<button class="flex flex-col items-center gap-1 hover:text-primary transition-colors">
+<span class="font-bold border border-current rounded px-1 text-[10px] h-6 flex items-center justify-center min-w-[24px]">1x</span>
+<span>Speed</span>
+</button>
+<button class="flex flex-col items-center gap-1 hover:text-primary transition-colors group">
+<span class="material-symbols-outlined">timer</span>
+<span>Sleep</span>
+</button>
+<button class="flex flex-col items-center gap-1 hover:text-primary transition-colors group">
+<span class="material-symbols-outlined">toc</span>
+<span>Chapters</span>
+</button>
+<button class="flex flex-col items-center gap-1 hover:text-primary transition-colors group">
+<span class="material-symbols-outlined">ios_share</span>
+<span>Share</span>
+</button>
+</div>
+</main>
+<!-- Bottom Routing/Queue Bar -->
+<div class="relative z-20 flex items-center justify-between w-full px-8 py-6 mt-auto">
+<button aria-label="AirPlay and Routing" class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">cast</span>
+</button>
+<button aria-label="Up Next Queue" class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">queue_music</span>
+</button>
+</div>
+</body></html>
