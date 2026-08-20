@@ -94,6 +94,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -123,6 +124,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import molliecaster.shared.generated.resources.*
 import mammoth.mollie.caster.data.LibraryState
 import mammoth.mollie.caster.data.MollieStore
 import mammoth.mollie.caster.data.discovery.recommendFromDiscovery
@@ -138,6 +140,16 @@ import mammoth.mollie.caster.playback.PlayerStatus
 import mammoth.mollie.caster.playback.PreviewPodcastPlayer
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import mammoth.mollie.caster.ui.theme.MolliecasterTheme
+import mammoth.mollie.caster.ui.components.EmptyHint
+import mammoth.mollie.caster.ui.components.PodcastArtwork
+import mammoth.mollie.caster.ui.components.SectionTitle
+import mammoth.mollie.caster.ui.dialogs.AddFeedDialog
+import mammoth.mollie.caster.ui.dialogs.OpmlDialog
+import mammoth.mollie.caster.ui.format.formatDate
+import mammoth.mollie.caster.ui.format.formatDuration
+import mammoth.mollie.caster.ui.format.formatPlaybackSpeed
+import molliecaster.shared.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
 
 private enum class Destination { Home, Search, Library, Settings }
 
@@ -173,12 +185,13 @@ fun MolliecasterApp(
     var settingsExpanded by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val audioPlaybackUnavailable = stringResource(Res.string.audio_playback_unavailable)
     val startPlayback: (Episode) -> Unit = { episode ->
         if (player.capabilities.realPlayback) {
             store.markPlayed(episode)
             player.play(episode)
         } else {
-            scope.launch { snackbar.showSnackbar("Audio playback is not available on this platform yet") }
+            scope.launch { snackbar.showSnackbar(audioPlaybackUnavailable) }
         }
     }
 
@@ -249,8 +262,8 @@ fun MolliecasterApp(
                             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
                             title = {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("Molliecaster", style = MaterialTheme.typography.headlineSmall)
-                                    Text("AETHERIC AUDIO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                                    Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineSmall)
+                                    Text(stringResource(Res.string.app_tagline), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                                 }
                             },
                             actions = {
@@ -259,13 +272,13 @@ fun MolliecasterApp(
                                     IconButton(
                                         modifier = Modifier.size(40.dp),
                                         onClick = { settingsExpanded = true },
-                                    ) { Icon(Icons.Default.MoreVert, "More actions") }
+                                    ) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more_actions)) }
                                     DropdownMenu(
                                         expanded = settingsExpanded,
                                         onDismissRequest = { settingsExpanded = false },
                                     ) {
                                         DropdownMenuItem(
-                                            text = { Text("Refresh") },
+                                            text = { Text(stringResource(Res.string.refresh)) },
                                             leadingIcon = { Icon(Icons.Default.Refresh, null) },
                                             onClick = {
                                                 settingsExpanded = false
@@ -276,7 +289,7 @@ fun MolliecasterApp(
                                             },
                                         )
                                         DropdownMenuItem(
-                                            text = { Text("Add RSS feed") },
+                                            text = { Text(stringResource(Res.string.add_rss_feed)) },
                                             leadingIcon = { Icon(Icons.Default.Add, null) },
                                             onClick = {
                                                 settingsExpanded = false
@@ -284,7 +297,7 @@ fun MolliecasterApp(
                                             },
                                         )
                                         DropdownMenuItem(
-                                            text = { Text("OPML import / export") },
+                                            text = { Text(stringResource(Res.string.opml_import_export)) },
                                             leadingIcon = { Icon(Icons.Default.Share, null) },
                                             onClick = {
                                                 settingsExpanded = false
@@ -455,12 +468,12 @@ private fun HomeScreen(
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                    Text("Loading popular podcasts…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.loading_popular_podcasts), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-        if (state.popularPodcasts.isNotEmpty()) item { PodcastShelf("Popular podcasts", state.popularPodcasts, onPodcast) }
-        if (recommended.isNotEmpty()) item { PodcastShelf("Recommended for you", recommended, onPodcast) }
+        if (state.popularPodcasts.isNotEmpty()) item { PodcastShelf(stringResource(Res.string.popular_podcasts), state.popularPodcasts, onPodcast) }
+        if (recommended.isNotEmpty()) item { PodcastShelf(stringResource(Res.string.recommended_for_you), recommended, onPodcast) }
         if (!state.discoveryLoading && state.discoveryWarnings.isNotEmpty()) {
             item {
                 Text(
@@ -470,10 +483,10 @@ private fun HomeScreen(
                 )
             }
         }
-        item { PodcastShelf("Latest podcasts", state.podcasts.sortedByDescending { it.latestEpisodeAtMillis }, onPodcast) }
+        item { PodcastShelf(stringResource(Res.string.latest_podcasts), state.podcasts.sortedByDescending { it.latestEpisodeAtMillis }, onPodcast) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionTitle("Browse categories")
+                SectionTitle(stringResource(Res.string.browse_categories))
                 if (subscriptionCategories.isEmpty()) {
                     EmptyHint("Subscribe to podcasts to browse their categories here.")
                 } else {
@@ -498,7 +511,7 @@ private fun HomeScreen(
                 }
             }
         }
-        item { SectionTitle("Latest episodes") }
+        item { SectionTitle(stringResource(Res.string.latest_episodes)) }
         items(state.episodes.sortedByDescending { it.publishedAtMillis }) {
             EpisodeRow(it, state, null, onOpen = onEpisode, onPlay = onPlay)
         }
@@ -521,7 +534,7 @@ private fun HeroCard(podcast: Podcast?, onPodcast: (Podcast) -> Unit) {
             PodcastArtwork(podcast.artworkUrl, podcast.title, 116)
             Spacer(Modifier.width(20.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("TODAY'S RESONANCE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary)
+                Text(stringResource(Res.string.todays_resonance), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary)
                 Text(podcast.title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimary)
                 Text(podcast.description, color = MaterialTheme.colorScheme.onPrimary, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(podcast.author.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary)
@@ -574,8 +587,8 @@ private fun SearchScreen(
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Find your next frequency", style = MaterialTheme.typography.headlineLarge)
-                Text("Search by show or author across Apple Podcasts and your library.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.find_next_frequency), style = MaterialTheme.typography.headlineLarge)
+                Text(stringResource(Res.string.search_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -586,7 +599,7 @@ private fun SearchScreen(
                         } else false
                     },
                     singleLine = true,
-                    label = { Text("Search Apple Podcasts") },
+                    label = { Text(stringResource(Res.string.search_apple_podcasts)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -603,12 +616,12 @@ private fun SearchScreen(
                     onClick = submitSearch,
                     enabled = normalized.isNotBlank() && !state.appleSearchLoading,
                     shape = RoundedCornerShape(24.dp),
-                ) { Text(if (state.appleSearchLoading) "Searching…" else "Search Apple Podcasts") }
+                ) { Text(if (state.appleSearchLoading) stringResource(Res.string.searching) else stringResource(Res.string.search_apple_podcasts)) }
             }
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionTitle("Browse all categories")
+                SectionTitle(stringResource(Res.string.browse_all_categories))
                 Text(
                     "Apple Podcasts top-level categories, plus AI",
                     style = MaterialTheme.typography.bodySmall,
@@ -622,16 +635,16 @@ private fun SearchScreen(
             }
         }
         if (normalized.isBlank()) item {
-            Text("Search Apple Podcasts by show name or author.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.search_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         val appleResultsCurrent = state.appleSearchQuery.equals(query.trim(), ignoreCase = true)
         if (appleResultsCurrent) state.appleSearchError?.let { error -> item { Text(error, color = MaterialTheme.colorScheme.error) } }
-        if (appleResultsCurrent && normalized.isNotBlank() && !state.appleSearchLoading && state.appleSearchError == null && state.appleSearchResults.isEmpty()) item { Text("No Apple Podcasts found") }
+        if (appleResultsCurrent && normalized.isNotBlank() && !state.appleSearchLoading && state.appleSearchError == null && state.appleSearchResults.isEmpty()) item { Text(stringResource(Res.string.no_apple_podcasts)) }
         if (localResults.isNotEmpty()) {
-            item { Text("In your library", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            item { Text(stringResource(Res.string.in_your_library), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
             items(localResults) { PodcastSearchRow(it, onPodcast) }
         }
-        if (appleResultsCurrent && state.appleSearchResults.isNotEmpty()) item { Text("Apple Podcasts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+        if (appleResultsCurrent && state.appleSearchResults.isNotEmpty()) item { Text(stringResource(Res.string.apple_podcasts), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
         if (appleResultsCurrent) items(state.appleSearchResults) { PodcastSearchRow(it, onPreview) }
     }
 }
@@ -654,9 +667,9 @@ private fun CategorySearchResultsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            LibraryDetailHeader(category.displayName, "Back to Search", onBack)
+            LibraryDetailHeader(category.displayName, stringResource(Res.string.back_to_search), onBack)
             Text(
-                "Apple Podcasts category results",
+                stringResource(Res.string.category_results),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -668,22 +681,22 @@ private fun CategorySearchResultsScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                    Text("Searching Apple Podcasts…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.searching_apple_podcasts), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             state.appleCategoryError != null -> item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(state.appleCategoryError, color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = onRetry) { Text("Retry") }
+                    OutlinedButton(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
                 }
             }
             state.appleCategoryResults.isEmpty() -> item {
-                EmptyHint("No Apple Podcasts found in this category.")
+                EmptyHint(stringResource(Res.string.no_category_podcasts))
             }
             else -> {
                 item {
                     Text(
-                        "Showing ${minOf(visibleCount, state.appleCategoryResults.size)} of ${state.appleCategoryResults.size}",
+                        stringResource(Res.string.showing_results, minOf(visibleCount, state.appleCategoryResults.size), state.appleCategoryResults.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary,
                     )
@@ -704,7 +717,7 @@ private fun CategorySearchResultsScreen(
                             },
                             shape = RoundedCornerShape(24.dp),
                         ) {
-                            Text("Show more (${minOf(CATEGORY_PAGE_SIZE, remaining)} more)")
+                            Text(stringResource(Res.string.show_more, minOf(CATEGORY_PAGE_SIZE, remaining)))
                         }
                     }
                 }
@@ -815,7 +828,7 @@ private fun LibraryOverview(
     )
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Text("Library", style = MaterialTheme.typography.headlineLarge)
+            Text(stringResource(Res.string.library), style = MaterialTheme.typography.headlineLarge)
         }
         item {
             Surface(
@@ -839,11 +852,11 @@ private fun LibraryOverview(
         }
         if (recentlyUpdated.isEmpty()) {
             item {
-                SectionTitle("Recently updated")
+                SectionTitle(stringResource(Res.string.recently_updated))
                 EmptyHint("Subscribe to a podcast to see recent updates.")
             }
         } else {
-            item { PodcastShelf("Recently updated", recentlyUpdated, onPodcast) }
+            item { PodcastShelf(stringResource(Res.string.recently_updated), recentlyUpdated, onPodcast) }
         }
     }
 }
@@ -1026,7 +1039,7 @@ private fun PodcastDetails(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(displayedPodcast.title, style = MaterialTheme.typography.headlineMedium)
                         Text(displayedPodcast.author, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${episodes.size} EPISODES", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                        Text(stringResource(Res.string.episode_count, episodes.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                         displayedPodcast.latestEpisodeAtMillis?.let { Text("Latest update ${formatDate(it)}", style = MaterialTheme.typography.bodySmall) }
                         Button(
                             enabled = !state.busy,
@@ -1037,19 +1050,19 @@ private fun PodcastDetails(
                             },
                         ) {
                             Icon(if (podcast.isSubscribed) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null)
-                            Spacer(Modifier.width(8.dp)); Text(if (state.busy) "Syncing…" else if (podcast.isSubscribed) "Subscribed" else "Subscribe")
+                            Spacer(Modifier.width(8.dp)); Text(if (state.busy) stringResource(Res.string.syncing) else if (podcast.isSubscribed) stringResource(Res.string.subscribed) else stringResource(Res.string.subscribe))
                         }
-                        if (podcast.isSubscribed) OutlinedButton(enabled = !state.busy, onClick = { onSync(podcast) }) { Text("Sync feed") }
+                        if (podcast.isSubscribed) OutlinedButton(enabled = !state.busy, onClick = { onSync(podcast) }) { Text(stringResource(Res.string.sync_feed)) }
                     }
                 }
             }
             item { Text(displayedPodcast.description) }
-            if (state.feedPreviewUrl == podcast.feedUrl && state.feedPreviewLoading) item { Text("Loading RSS preview…", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            if (state.feedPreviewUrl == podcast.feedUrl && state.feedPreviewLoading) item { Text(stringResource(Res.string.loading_rss_preview), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             if (state.feedPreviewUrl == podcast.feedUrl) state.feedPreviewError?.let { error -> item { Text(error, color = MaterialTheme.colorScheme.error) } }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AetherFilterChip(selected = order == EpisodeOrder.Newest, onClick = { order = EpisodeOrder.Newest }, label = "Newest")
-                    AetherFilterChip(selected = order == EpisodeOrder.Oldest, onClick = { order = EpisodeOrder.Oldest }, label = "Oldest")
+                    AetherFilterChip(selected = order == EpisodeOrder.Newest, onClick = { order = EpisodeOrder.Newest }, label = stringResource(Res.string.newest))
+                    AetherFilterChip(selected = order == EpisodeOrder.Oldest, onClick = { order = EpisodeOrder.Oldest }, label = stringResource(Res.string.oldest))
                 }
             }
             items(episodes) { episode -> EpisodeRow(episode, state, store, onOpen = onOpenEpisode, onPlay = { onPlay(it); if (player.capabilities.realPlayback) onOpenPlayer() }) }
@@ -1088,6 +1101,7 @@ private fun EpisodeRow(
                     DownloadAction(
                         download = download,
                         supported = state.downloadsSupported,
+                        warnBeforeCellularDownload = state.cellularDownloadControlSupported && state.cellularDownloadsAllowed,
                         onDownload = { store.enqueueDownload(episode) },
                         onRemove = { store.removeDownload(episode.id) },
                     )
@@ -1119,8 +1133,8 @@ private fun EpisodeDetails(
         topBar = {
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
-                title = { Text("Episode", maxLines = 1) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                title = { Text(stringResource(Res.string.episode), maxLines = 1) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back)) } },
                 actions = { ThemeToggle(darkTheme, onToggleTheme) },
             )
         },
@@ -1149,13 +1163,14 @@ private fun EpisodeDetails(
             if (episode.descriptionHtml.isNotBlank() && episode.descriptionHtml != episode.summary) item { Text(episode.descriptionHtml) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { onPlay(episode) }, shape = RoundedCornerShape(24.dp)) { Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text("Play") }
+                    Button(onClick = { onPlay(episode) }, shape = RoundedCornerShape(24.dp)) { Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(stringResource(Res.string.play)) }
                     IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) {
                         Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite")
                     }
                     DownloadAction(
                         download = download,
                         supported = state.downloadsSupported,
+                        warnBeforeCellularDownload = state.cellularDownloadControlSupported && state.cellularDownloadsAllowed,
                         onDownload = { store.enqueueDownload(episode) },
                         onRemove = { store.removeDownload(episode.id) },
                     )
@@ -1169,25 +1184,33 @@ private fun EpisodeDetails(
 private fun DownloadAction(
     download: Download?,
     supported: Boolean,
+    warnBeforeCellularDownload: Boolean,
     onDownload: () -> Unit,
     onRemove: () -> Unit,
 ) {
+    var showCellularDownloadWarning by remember { mutableStateOf(false) }
     val state = download?.state
     val active = state == DownloadState.Queued || state == DownloadState.Downloading
     val progress = download?.takeIf { state == DownloadState.Downloading }?.downloadProgress()
     val description = when (state) {
-        DownloadState.Queued -> "Cancel queued download"
-        DownloadState.Downloading -> progress?.let { "Cancel download, ${(it * 100).toInt()} percent complete" } ?: "Cancel download"
-        DownloadState.Completed -> "Delete downloaded episode"
-        DownloadState.Failed -> "Clear failed download"
-        DownloadState.Removing -> "Removing downloaded episode"
-        null -> "Download episode"
+        DownloadState.Queued -> stringResource(Res.string.cancel_queued_download)
+        DownloadState.Downloading -> progress?.let { stringResource(Res.string.cancel_download_progress, (it * 100).toInt()) } ?: stringResource(Res.string.cancel_download)
+        DownloadState.Completed -> stringResource(Res.string.delete_downloaded_episode)
+        DownloadState.Failed -> stringResource(Res.string.clear_failed_download)
+        DownloadState.Removing -> stringResource(Res.string.removing_downloaded_episode)
+        null -> stringResource(Res.string.download_episode)
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(
             enabled = state != DownloadState.Removing && (supported || download != null),
-            onClick = if (download == null) onDownload else onRemove,
+            onClick = {
+                when {
+                    download != null -> onRemove()
+                    warnBeforeCellularDownload -> showCellularDownloadWarning = true
+                    else -> onDownload()
+                }
+            },
         ) {
             Icon(
                 imageVector = if (state == DownloadState.Completed) Icons.Default.DownloadDone else Icons.Default.Download,
@@ -1203,8 +1226,32 @@ private fun DownloadAction(
                 LinearProgressIndicator(progress = { progress }, modifier = Modifier.width(64.dp))
             }
         } else if (state == DownloadState.Failed) {
-            Text("Failed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            Text(stringResource(Res.string.failed), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
         }
+    }
+    if (showCellularDownloadWarning) {
+        AlertDialog(
+            onDismissRequest = { showCellularDownloadWarning = false },
+            title = { Text(stringResource(Res.string.download_without_wifi)) },
+            text = {
+                Text(
+                    stringResource(Res.string.mobile_download_warning),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { showCellularDownloadWarning = false }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showCellularDownloadWarning = false
+                    onDownload()
+                }) {
+                    Text(stringResource(Res.string.download_anyway))
+                }
+            },
+        )
     }
 }
 
@@ -1581,13 +1628,13 @@ private fun MiniPlayer(episode: Episode, playing: Boolean, player: PodcastPlayer
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(episode.title, maxLines = 1, style = MaterialTheme.typography.titleMedium)
-                Text("NOW PLAYING", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Text(stringResource(Res.string.now_playing), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
             }
             Box(
                 Modifier.size(44.dp).background(AetherTheme.colors.actionGradient, CircleShape).clickable(onClick = player::toggle),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) "Pause" else "Play", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) stringResource(Res.string.pause) else stringResource(Res.string.play), tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -1612,31 +1659,11 @@ private fun PodcastSearchRow(podcast: Podcast, onPodcast: (Podcast) -> Unit) {
 }
 
 @Composable
-private fun PodcastArtwork(url: String?, title: String, size: Int) {
-    AsyncImage(
-        model = url,
-        contentDescription = "$title cover",
-        modifier = Modifier.size(size.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        contentScale = ContentScale.Crop,
-    )
-}
-
-@Composable private fun EmptyHint(text: String) { Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 8.dp)) }
-
-@Composable
-private fun SectionTitle(text: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(text, style = MaterialTheme.typography.titleLarge)
-        Box(Modifier.width(42.dp).height(2.dp).background(AetherTheme.colors.actionGradient, CircleShape))
-    }
-}
-
-@Composable
 private fun ThemeToggle(darkTheme: Boolean, onToggle: () -> Unit) {
     IconButton(modifier = Modifier.size(40.dp), onClick = onToggle) {
         Icon(
             if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-            if (darkTheme) "Use light theme" else "Use dark theme",
+            if (darkTheme) stringResource(Res.string.use_light_theme) else stringResource(Res.string.use_dark_theme),
         )
     }
 }
@@ -1666,7 +1693,7 @@ private fun SettingsScreen(
     ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Settings", style = MaterialTheme.typography.headlineLarge)
+                    Text(stringResource(Res.string.settings), style = MaterialTheme.typography.headlineLarge)
                     Text(
                         "Control appearance, listening, downloads, and your library data.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1674,9 +1701,9 @@ private fun SettingsScreen(
                 }
             }
             item {
-                SettingsGroup("Appearance") {
+                SettingsGroup(stringResource(Res.string.appearance)) {
                     SettingsSwitchRow(
-                        title = "Dark theme",
+                        title = stringResource(Res.string.dark_theme),
                         summary = if (darkTheme) "Using the dark Aether theme" else "Using the light Aether theme",
                         checked = darkTheme,
                         onCheckedChange = { onToggleTheme() },
@@ -1684,10 +1711,10 @@ private fun SettingsScreen(
                 }
             }
             item {
-                SettingsGroup("Playback") {
+                SettingsGroup(stringResource(Res.string.playback)) {
                     Box {
                         SettingsActionRow(
-                            title = "Playback speed",
+                            title = stringResource(Res.string.playback_speed),
                             summary = "${formatPlaybackSpeed(playerState.speed)}x",
                             onClick = { speedExpanded = true },
                         )
@@ -1706,7 +1733,7 @@ private fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Box {
                         SettingsActionRow(
-                            title = "Sleep timer",
+                            title = stringResource(Res.string.sleep_timer),
                             summary = playerState.sleepTimerEndsAtMillis?.let { "Active" } ?: "Off",
                             onClick = { sleepExpanded = true },
                         )
@@ -1741,10 +1768,10 @@ private fun SettingsScreen(
                 }
             }
             item {
-                SettingsGroup("Downloads") {
+                SettingsGroup(stringResource(Res.string.downloads)) {
                     if (cellularDownloadControlSupported) {
                         SettingsSwitchRow(
-                            title = "Download over mobile data",
+                            title = stringResource(Res.string.download_over_mobile_data),
                             summary = if (cellularDownloadsAllowed) "Downloads can use Wi-Fi or mobile data" else "Downloads use Wi-Fi only",
                             checked = cellularDownloadsAllowed,
                             onCheckedChange = onCellularDownloadsAllowedChange,
@@ -1752,7 +1779,7 @@ private fun SettingsScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     }
                     SettingsActionRow(
-                        title = "Manage downloads",
+                        title = stringResource(Res.string.manage_downloads),
                         summary = if (downloadsSupported) "View downloaded episodes" else "Downloads are not available on this platform",
                         enabled = downloadsSupported,
                         onClick = onManageDownloads,
@@ -1760,9 +1787,9 @@ private fun SettingsScreen(
                 }
             }
             item {
-                SettingsGroup("Library & data") {
+                SettingsGroup(stringResource(Res.string.library_and_data)) {
                     SettingsActionRow(
-                        title = if (refreshing) "Refreshing subscriptions…" else "Refresh subscriptions",
+                        title = if (refreshing) stringResource(Res.string.refreshing_subscriptions) else stringResource(Res.string.refresh_subscriptions),
                         summary = "Check your followed podcasts for new episodes",
                         enabled = !refreshing,
                         onClick = onRefresh,
@@ -1777,7 +1804,7 @@ private fun SettingsScreen(
             }
             item {
                 Text(
-                    "Molliecaster",
+                    stringResource(Res.string.app_name),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1847,62 +1874,4 @@ private fun AetherFilterChip(selected: Boolean, onClick: () -> Unit, label: Stri
             selectedBorderColor = Color.Transparent,
         ),
     )
-}
-
-@Composable
-private fun AddFeedDialog(busy: Boolean, onDismiss: () -> Unit, onSubscribe: (String) -> Unit) {
-    var url by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Subscribe by RSS") },
-        text = { OutlinedTextField(url, { url = it }, label = { Text("Feed URL") }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
-        confirmButton = { Button(enabled = !busy && url.startsWith("http"), onClick = { onSubscribe(url.trim()) }) { Text(if (busy) "Loading…" else "Subscribe") } },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-@Composable
-private fun OpmlDialog(store: MollieStore, onDismiss: () -> Unit) {
-    var document by remember { mutableStateOf("") }
-    var result by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("OPML import / export") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Paste an OPML document to import Apple Podcasts, AntennaPod or Pocket Casts subscriptions.")
-            OutlinedTextField(document, { document = it }, minLines = 6, maxLines = 12, modifier = Modifier.fillMaxWidth(), label = { Text("OPML") })
-            if (result.isNotBlank()) Text(result, style = MaterialTheme.typography.bodySmall)
-        } },
-        confirmButton = { Button(onClick = { scope.launch {
-            val report = store.importOpml(document)
-            result = "Imported ${report.imported}, duplicates ${report.duplicates}, failed ${report.failures.size}"
-        } }) { Text("Import") } },
-        dismissButton = { Row { OutlinedButton(onClick = { document = store.exportOpml(); result = "Export ready" }) { Text("Export") }; Spacer(Modifier.width(8.dp)); OutlinedButton(onClick = onDismiss) { Text("Close") } } },
-    )
-}
-
-private fun formatDuration(millis: Long): String {
-    val seconds = millis.coerceAtLeast(0) / 1000
-    val hours = seconds / 3600
-    val minutes = seconds / 60 % 60
-    val remaining = seconds % 60
-    return if (hours > 0) "$hours:${minutes.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}" else "$minutes:${remaining.toString().padStart(2, '0')}"
-}
-
-private fun formatPlaybackSpeed(speed: Float): String =
-    if (speed % 1f == 0f) speed.toInt().toString() else speed.toString()
-
-private fun formatDate(millis: Long?): String? = millis?.let {
-    var z = it / 86_400_000L + 719_468L
-    val era = if (z >= 0) z / 146_097L else (z - 146_096L) / 146_097L
-    val dayOfEra = z - era * 146_097L
-    val yearOfEra = (dayOfEra - dayOfEra / 1_460L + dayOfEra / 36_524L - dayOfEra / 146_096L) / 365L
-    var year = yearOfEra + era * 400L
-    val dayOfYear = dayOfEra - (365L * yearOfEra + yearOfEra / 4L - yearOfEra / 100L)
-    val monthPart = (5L * dayOfYear + 2L) / 153L
-    val day = dayOfYear - (153L * monthPart + 2L) / 5L + 1L
-    val month = monthPart + if (monthPart < 10) 3 else -9
-    if (month <= 2) year++
-    "${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}"
 }

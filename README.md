@@ -82,7 +82,7 @@ The source Jetcaster project remains read-only. See [CAPABILITY_MATRIX.md](CAPAB
 
 ## Build release products
 
-Before shipping, update Android `versionCode`/`versionName` in `androidApp/build.gradle.kts` and iOS `CURRENT_PROJECT_VERSION`/`MARKETING_VERSION` in `iosApp/iosApp.xcodeproj/project.pbxproj`. The current release version is `0.1.0` (build `1`).
+Before shipping, update Android `versionCode`/`versionName` in `androidApp/build.gradle.kts` and iOS `CURRENT_PROJECT_VERSION`/`MARKETING_VERSION` in `iosApp/iosApp.xcodeproj/project.pbxproj`. The current release version is `1.0.2` (build `2`).
 
 ### Android
 
