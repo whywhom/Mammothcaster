@@ -14,6 +14,8 @@ import mammoth.mollie.caster.model.Download
 import mammoth.mollie.caster.model.DownloadState
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.model.EpisodeId
+import mammoth.mollie.caster.downloads.uniqueMediaFileName
+import mammoth.mollie.caster.downloads.safeMediaPathComponent
 
 class AndroidDownloadGateway(context: Context) : EpisodeDownloadGateway {
     private val manager = AndroidEpisodeDownloadManager.get(context)
@@ -21,6 +23,8 @@ class AndroidDownloadGateway(context: Context) : EpisodeDownloadGateway {
     private val mutableDownloads = MutableStateFlow(DownloadSnapshot())
     override val downloads: StateFlow<DownloadSnapshot> = mutableDownloads.asStateFlow()
     override val supported: Boolean = true
+    override val cellularDownloadControlSupported: Boolean = true
+    override val cellularDownloadsAllowed: StateFlow<Boolean> = manager.cellularDownloadsAllowed
 
     init {
         scope.launch {
@@ -44,18 +48,29 @@ class AndroidDownloadGateway(context: Context) : EpisodeDownloadGateway {
             EpisodeDownloadStatus.Downloading -> DownloadState.Downloading
             EpisodeDownloadStatus.Completed -> DownloadState.Completed
             EpisodeDownloadStatus.Removing -> DownloadState.Removing
-            EpisodeDownloadStatus.Failed, EpisodeDownloadStatus.MissingFile -> DownloadState.Failed
+            EpisodeDownloadStatus.Failed -> DownloadState.Failed
         },
         receivedBytes = value.bytesDownloaded,
-        failureMessage = value.failureReason?.let { "Media3 download error $it" },
+        totalBytes = value.totalBytes,
+        localReference = value.localReference,
+        failureMessage = value.failureReason?.let { "Android download error $it" },
     )
 
-    override fun download(episode: Episode) {
+    override fun download(episode: Episode, podcastTitle: String) {
         val enclosure = episode.enclosures.firstOrNull { it.mimeType?.startsWith("audio/") == true }
             ?: episode.enclosures.firstOrNull()
             ?: return
-        manager.download(episode.id.value, enclosure.url, enclosure.mimeType)
+        manager.download(
+            episode.id.value,
+            enclosure.url,
+            enclosure.mimeType,
+            safeMediaPathComponent(podcastTitle, "Podcast"),
+            uniqueMediaFileName(episode.title, episode.id, enclosure),
+        )
     }
 
     override fun delete(episodeId: EpisodeId) = manager.delete(episodeId.value)
+    override fun setCellularDownloadsAllowed(allowed: Boolean) = manager.setCellularDownloadsAllowed(allowed)
+
+    fun localReference(episodeId: EpisodeId): String? = manager.localReference(episodeId.value)
 }

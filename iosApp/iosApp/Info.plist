@@ -2,9 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDisplayName</key>
-    <string>Molliecaster</string>
-    <key>CFBundleIdentifier</key>
+	<key>CFBundleDisplayName</key>
+	<string>Molliecaster</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
     <string>mammoth.mollie.caster</string>
     <key>CFBundleName</key>
     <string>Molliecaster</string>
@@ -12,6 +14,8 @@
     <string>0.1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UIBackgroundModes</key>

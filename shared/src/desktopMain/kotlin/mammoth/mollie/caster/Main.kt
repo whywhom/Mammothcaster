@@ -7,10 +7,13 @@ import mammoth.mollie.caster.data.database.buildDatabase
 import mammoth.mollie.caster.data.database.databaseBuilder
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
 import mammoth.mollie.caster.playback.DesktopPodcastPlayer
+import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
 
 fun main() {
     val proxyUrl = System.getenv("MOLLIE_PODCAST_INDEX_PROXY_URL").orEmpty().trim()
+    val downloads = DesktopEpisodeDownloadGateway()
     val store = MollieStore(
+        downloadGateway = downloads,
         database = buildDatabase(databaseBuilder()),
         discoveryConfig = DiscoveryConfig(
             appleStorefront = System.getenv("MOLLIE_APPLE_STOREFRONT").orEmpty().ifBlank { "us" },
@@ -20,9 +23,9 @@ fun main() {
             podcastIndexUsesTrustedProxy = proxyUrl.isNotBlank(),
         ),
     )
-    val player = DesktopPodcastPlayer()
+    val player = DesktopPodcastPlayer(downloads)
     application {
-        Window(onCloseRequest = { player.close(); exitApplication() }, title = "Molliecaster") {
+        Window(onCloseRequest = { player.close(); downloads.close(); exitApplication() }, title = "Molliecaster") {
             MolliecasterApp(store = store, player = player)
         }
     }

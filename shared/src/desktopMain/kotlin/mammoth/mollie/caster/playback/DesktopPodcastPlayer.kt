@@ -14,11 +14,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mammoth.mollie.caster.model.Episode
+import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
+import mammoth.mollie.caster.data.cache.validateRemoteMedia
 import mammoth.mollie.caster.platform.currentTimeMillis
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** JavaFX Media adapter for JVM desktop. JavaFX supplies MP3/AAC streaming and seek support. */
-class DesktopPodcastPlayer : PodcastPlayer, AutoCloseable {
+class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway) : PodcastPlayer, AutoCloseable {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutableState = MutableStateFlow(PlayerState())
     private var player: MediaPlayer? = null
@@ -42,7 +44,10 @@ class DesktopPodcastPlayer : PodcastPlayer, AutoCloseable {
     }
 
     override fun play(episode: Episode) {
-        val source = episode.enclosures.firstOrNull()?.url ?: return fail(episode, "This episode has no playable audio URL")
+        episode.enclosures.firstOrNull()?.let { enclosure ->
+            validateRemoteMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
+        }
+        val source = mediaFiles.playbackSource(episode).ifBlank { return fail(episode, "This episode has no playable audio URL") }
         onFx {
             player?.dispose()
             mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Loading, positionMillis = episode.playbackPositionMillis, speed = state.value.speed)

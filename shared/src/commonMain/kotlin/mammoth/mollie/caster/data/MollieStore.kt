@@ -2,6 +2,7 @@ package mammoth.mollie.caster.data
 
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +10,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import mammoth.mollie.caster.data.cache.MetadataCacheKind
+import mammoth.mollie.caster.data.cache.isFresh
+import mammoth.mollie.caster.data.cache.validateRemoteMedia
 import mammoth.mollie.caster.data.database.DownloadEntity
 import mammoth.mollie.caster.data.database.CategoryEntity
 import mammoth.mollie.caster.data.database.EpisodeEnclosureEntity
@@ -51,6 +57,8 @@ data class LibraryState(
     val downloads: List<Download> = emptyList(),
     val history: List<PlaybackHistory> = emptyList(),
     val downloadsSupported: Boolean = false,
+    val cellularDownloadControlSupported: Boolean = false,
+    val cellularDownloadsAllowed: Boolean = false,
     val popularPodcasts: List<Podcast> = emptyList(),
     val discoveryLoading: Boolean = false,
     val discoveryWarnings: List<String> = emptyList(),
@@ -76,18 +84,26 @@ data class DownloadSnapshot(val initialized: Boolean = false, val items: List<Do
 
 data class FeedPreview(val feedUrl: String, val podcast: Podcast, val episodes: List<Episode>)
 
+private data class CachedFeedPreview(val value: FeedPreview, val validatedAtMillis: Long)
+
 interface EpisodeDownloadGateway {
     val downloads: StateFlow<DownloadSnapshot>
     val supported: Boolean
-    fun download(episode: Episode)
+    val cellularDownloadControlSupported: Boolean
+    val cellularDownloadsAllowed: StateFlow<Boolean>
+    fun download(episode: Episode, podcastTitle: String)
     fun delete(episodeId: EpisodeId)
+    fun setCellularDownloadsAllowed(allowed: Boolean)
 }
 
 private object NoOpDownloadGateway : EpisodeDownloadGateway {
     override val downloads: StateFlow<DownloadSnapshot> = MutableStateFlow(DownloadSnapshot())
     override val supported: Boolean = false
-    override fun download(episode: Episode) = Unit
+    override val cellularDownloadControlSupported: Boolean = false
+    override val cellularDownloadsAllowed: StateFlow<Boolean> = MutableStateFlow(false)
+    override fun download(episode: Episode, podcastTitle: String) = Unit
     override fun delete(episodeId: EpisodeId) = Unit
+    override fun setCellularDownloadsAllowed(allowed: Boolean) = Unit
 }
 
 class MollieStore(
@@ -95,45 +111,76 @@ class MollieStore(
     private val downloadGateway: EpisodeDownloadGateway = NoOpDownloadGateway,
     private val database: MollieDatabase? = null,
     discoveryConfig: DiscoveryConfig = DiscoveryConfig(),
+    private val clock: () -> Long = ::currentTimeMillis,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val feedClient = FeedClient(httpClient)
     private val applePodcastClient = ApplePodcastClient(httpClient, discoveryConfig.appleStorefront)
     private val discoveryService = PodcastDiscoveryService(httpClient, discoveryConfig)
-    private val mutableState = MutableStateFlow(seedState().copy(downloadsSupported = downloadGateway.supported))
+    private val mutableState = MutableStateFlow(seedState().copy(
+        downloadsSupported = downloadGateway.supported,
+        cellularDownloadControlSupported = downloadGateway.cellularDownloadControlSupported,
+        cellularDownloadsAllowed = downloadGateway.cellularDownloadsAllowed.value,
+    ))
+    private val playbackWriteMutex = Mutex()
+    private val previewCacheMutex = Mutex()
+    private var lastPlaybackTimestamp = 0L
+    private var discoveryValidatedAtMillis: Long? = null
+    private val feedPreviewCache = mutableMapOf<String, CachedFeedPreview>()
+    private val latestPreviewRequest = mutableMapOf<String, Long>()
+    private var previewRequestSequence = 0L
     val state: StateFlow<LibraryState> = mutableState.asStateFlow()
 
     init {
         scope.launch {
             val needsStarterFeed = database?.let { db -> !restore(db) } ?: true
-            scope.launch { refreshDiscovery() }
+            scope.launch { collectDownloadSnapshots() }
+            scope.launch { downloadGateway.cellularDownloadsAllowed.collect { allowed ->
+                mutableState.update { it.copy(cellularDownloadsAllowed = allowed) }
+            } }
+            scope.launch { refreshDiscovery(force = false) }
             if (needsStarterFeed) subscribeFeed(STARTER_FEED_URL)
-            downloadGateway.downloads.collect { snapshot ->
-                if (!snapshot.initialized) return@collect
-                val updates = snapshot.items
-                mutableState.update { value ->
-                    value.copy(downloads = updates)
-                }
-                database?.let { db ->
-                    db.downloadDao().replaceAll(updates.map { item ->
-                        val now = currentTimeMillis()
+            else refreshSubscriptions(force = false)
+        }
+    }
+
+    private suspend fun collectDownloadSnapshots() {
+        downloadGateway.downloads.collect { snapshot ->
+            if (!snapshot.initialized) return@collect
+            val updates = snapshot.items
+            mutableState.update { value -> value.copy(downloads = updates) }
+            database?.let { db ->
+                val knownEpisodeIds = state.value.episodes.mapTo(mutableSetOf()) { it.id.value }
+                val persistable = updates.filter { it.episodeId.value in knownEpisodeIds }
+                runCatching {
+                    val existing = db.downloadDao().allDownloads().associateBy { it.episodeId }
+                    db.downloadDao().replaceAll(persistable.map { item ->
+                        val now = clock()
+                        val previous = existing[item.episodeId.value]
                         DownloadEntity(
                             item.episodeId.value, item.sourceUrl, item.state.name, item.localReference,
-                            item.receivedBytes, item.totalBytes, null, item.failureMessage, now, now,
-                            now.takeIf { item.state == DownloadState.Completed },
+                            item.receivedBytes, item.totalBytes, null, item.failureMessage,
+                            previous?.requestedAt ?: now,
+                            now,
+                            if (item.state == DownloadState.Completed) previous?.completedAt ?: now else null,
                         )
                     })
+                }.onFailure { error ->
+                    mutableState.update { it.copy(message = error.message ?: "Could not reconcile downloaded episodes") }
                 }
             }
         }
     }
 
-    suspend fun refreshDiscovery() {
+    suspend fun refreshDiscovery(force: Boolean = false) {
+        val now = clock()
+        if (!force && state.value.popularPodcasts.isNotEmpty() && MetadataCacheKind.PodcastList.isFresh(discoveryValidatedAtMillis, now)) return
         mutableState.update { it.copy(discoveryLoading = true, discoveryWarnings = emptyList()) }
         val snapshot = discoveryService.refresh()
+        if (snapshot.merged.isNotEmpty()) discoveryValidatedAtMillis = now
         mutableState.update { value ->
             value.copy(
-                popularPodcasts = snapshot.merged,
+                popularPodcasts = snapshot.merged.ifEmpty { value.popularPodcasts },
                 discoveryLoading = false,
                 discoveryWarnings = snapshot.warnings,
             )
@@ -142,12 +189,14 @@ class MollieStore(
 
     suspend fun subscribeFeed(feedUrl: String): FeedRefreshResult {
         mutableState.update { it.copy(busy = true, message = null) }
-        val cached = database?.syncDao()?.state(podcastIdFor(feedUrl).value)
+        val normalizedUrl = normalizeFeedUrl(feedUrl)
+        val cachedPodcastId = database?.podcastDao()?.resolveByFeedAlias(normalizedUrl) ?: podcastIdFor(feedUrl).value
+        val cached = database?.syncDao()?.state(cachedPodcastId)
         val result = feedClient.fetch(feedUrl, cached?.etag, cached?.lastModified)
         when (result) {
             is FeedRefreshResult.Updated -> {
                 database?.let { persistFeed(it, result) }
-                val podcast = result.feed.podcast.copy(isSubscribed = true, lastRefreshAtMillis = currentTimeMillis())
+                val podcast = result.feed.podcast.copy(isSubscribed = true, lastRefreshAtMillis = clock())
                 mutableState.update { old ->
                     old.copy(
                         podcasts = old.podcasts.filterNot { it.id == podcast.id } + podcast,
@@ -158,15 +207,17 @@ class MollieStore(
                 }
             }
             is FeedRefreshResult.NotModified -> {
-                val id = PodcastId(podcastIdFor(feedUrl).value)
+                val id = PodcastId(cachedPodcastId)
+                val validatedAt = clock()
                 mutableState.update { value ->
                     value.copy(
-                        podcasts = value.podcasts.map { if (it.id == id) it.copy(isSubscribed = true) else it },
+                        podcasts = value.podcasts.map { if (it.id == id) it.copy(isSubscribed = true, lastRefreshAtMillis = validatedAt) else it },
                         busy = false,
                         message = "Feed has not changed",
                     )
                 }
-                database?.userDataDao()?.addSubscription(SubscriptionEntity(id.value, currentTimeMillis()))
+                database?.podcastDao()?.updateLastRefreshAt(id.value, validatedAt)
+                database?.userDataDao()?.addSubscription(SubscriptionEntity(id.value, validatedAt))
             }
             else -> mutableState.update { it.copy(busy = false, message = refreshError(result)) }
         }
@@ -174,11 +225,19 @@ class MollieStore(
         return result
     }
 
-    suspend fun refreshSubscriptions(): Int {
-        val feeds = state.value.podcasts.filter { it.isSubscribed }.map { it.feedUrl }
+    suspend fun refreshSubscriptions(force: Boolean = false): Int {
+        val now = clock()
+        val feeds = state.value.podcasts.filter { podcast ->
+            podcast.isSubscribed && (force || !MetadataCacheKind.EpisodeList.isFresh(podcast.lastRefreshAtMillis, now))
+        }.map { it.feedUrl }
         var updated = 0
         feeds.forEach { if (subscribeFeed(it) is FeedRefreshResult.Updated) updated++ }
-        mutableState.update { it.copy(message = "Refreshed $updated of ${feeds.size} subscriptions", busy = false) }
+        mutableState.update {
+            it.copy(
+                message = if (force) "Refreshed $updated of ${feeds.size} subscriptions" else it.message,
+                busy = false,
+            )
+        }
         return updated
     }
 
@@ -251,14 +310,62 @@ class MollieStore(
     }
 
     /** Fetch a search result's RSS metadata and episodes without changing subscriptions. */
-    suspend fun previewFeed(feedUrl: String) {
-        mutableState.update { it.copy(feedPreview = null, feedPreviewUrl = feedUrl, feedPreviewLoading = true, feedPreviewError = null) }
-        when (val result = feedClient.fetch(feedUrl)) {
-            is FeedRefreshResult.Updated -> mutableState.update {
-                if (it.feedPreviewUrl == feedUrl) it.copy(feedPreview = FeedPreview(feedUrl, result.feed.podcast, result.feed.episodes), feedPreviewLoading = false) else it
+    suspend fun previewFeed(feedUrl: String, force: Boolean = false) {
+        val normalizedUrl = normalizeFeedUrl(feedUrl)
+        val now = clock()
+        val cachedPreview = previewCacheMutex.withLock {
+            feedPreviewCache.remove(normalizedUrl)?.takeIf {
+                MetadataCacheKind.EpisodeDetail.isFresh(it.validatedAtMillis, now)
+            }?.also {
+                feedPreviewCache[normalizedUrl] = it
             }
-            else -> mutableState.update {
-                if (it.feedPreviewUrl == feedUrl) it.copy(feedPreviewLoading = false, feedPreviewError = refreshError(result)) else it
+        }
+        if (!force && cachedPreview != null) {
+            mutableState.update {
+                it.copy(feedPreview = cachedPreview.value, feedPreviewUrl = feedUrl, feedPreviewLoading = false, feedPreviewError = null)
+            }
+            return
+        }
+        val cachedPodcast = state.value.podcasts.firstOrNull {
+            normalizeFeedUrl(it.feedUrl) == normalizedUrl || normalizeFeedUrl(it.canonicalFeedUrl) == normalizedUrl
+        }
+        if (!force && cachedPodcast != null && MetadataCacheKind.EpisodeDetail.isFresh(cachedPodcast.lastRefreshAtMillis, clock())) {
+            mutableState.update {
+                it.copy(
+                    feedPreview = FeedPreview(feedUrl, cachedPodcast, it.episodes.filter { episode -> episode.podcastId == cachedPodcast.id }),
+                    feedPreviewUrl = feedUrl,
+                    feedPreviewLoading = false,
+                    feedPreviewError = null,
+                )
+            }
+            return
+        }
+        mutableState.update { it.copy(feedPreview = null, feedPreviewUrl = feedUrl, feedPreviewLoading = true, feedPreviewError = null) }
+        val requestId = previewCacheMutex.withLock {
+            (++previewRequestSequence).also { latestPreviewRequest[normalizedUrl] = it }
+        }
+        when (val result = feedClient.fetch(feedUrl)) {
+            is FeedRefreshResult.Updated -> {
+                val preview = FeedPreview(feedUrl, result.feed.podcast, result.feed.episodes)
+                val accepted = previewCacheMutex.withLock {
+                    if (latestPreviewRequest[normalizedUrl] != requestId) return@withLock false
+                    latestPreviewRequest.remove(normalizedUrl)
+                    feedPreviewCache.remove(normalizedUrl)
+                    while (feedPreviewCache.size >= MAX_FEED_PREVIEWS) feedPreviewCache.remove(feedPreviewCache.keys.first())
+                    feedPreviewCache[normalizedUrl] = CachedFeedPreview(preview, clock())
+                    true
+                }
+                if (accepted) mutableState.update {
+                    if (it.feedPreviewUrl == feedUrl) it.copy(feedPreview = preview, feedPreviewLoading = false) else it
+                }
+            }
+            else -> {
+                val accepted = previewCacheMutex.withLock {
+                    (latestPreviewRequest[normalizedUrl] == requestId).also { if (it) latestPreviewRequest.remove(normalizedUrl) }
+                }
+                if (accepted) mutableState.update {
+                    if (it.feedPreviewUrl == feedUrl) it.copy(feedPreviewLoading = false, feedPreviewError = refreshError(result)) else it
+                }
             }
         }
     }
@@ -268,7 +375,7 @@ class MollieStore(
             value.copy(podcasts = value.podcasts.map { if (it.id == podcastId) it.copy(isSubscribed = subscribed) else it })
         }
         database?.let { db -> scope.launch {
-            if (subscribed) db.userDataDao().addSubscription(SubscriptionEntity(podcastId.value, currentTimeMillis()))
+            if (subscribed) db.userDataDao().addSubscription(SubscriptionEntity(podcastId.value, clock()))
             else db.userDataDao().removeSubscription(podcastId.value)
         } }
     }
@@ -277,9 +384,27 @@ class MollieStore(
         mutableState.update { value ->
             value.copy(favoriteIds = if (favorite) value.favoriteIds + episodeId else value.favoriteIds - episodeId)
         }
+        val belongsToStoredEpisode = state.value.episodes.any { it.id == episodeId }
+        if (database != null && !belongsToStoredEpisode) {
+            mutableState.update {
+                it.copy(message = "This favorite will be saved after you subscribe to the podcast")
+            }
+            return
+        }
         database?.let { db -> scope.launch {
-            if (favorite) db.userDataDao().addFavorite(FavoriteEntity(episodeId.value, currentTimeMillis()))
-            else db.userDataDao().removeFavorite(episodeId.value)
+            runCatching {
+                if (favorite) db.userDataDao().addFavorite(FavoriteEntity(episodeId.value, clock()))
+                else db.userDataDao().removeFavorite(episodeId.value)
+            }.onFailure {
+                mutableState.update { value ->
+                    val rolledBack = when {
+                        favorite && episodeId in value.favoriteIds -> value.favoriteIds - episodeId
+                        !favorite && episodeId !in value.favoriteIds -> value.favoriteIds + episodeId
+                        else -> value.favoriteIds
+                    }
+                    value.copy(favoriteIds = rolledBack, message = "Could not save this favorite. Please try again.")
+                }
+            }
         } }
     }
 
@@ -289,50 +414,54 @@ class MollieStore(
             return
         }
         val source = episode.enclosures.firstOrNull()?.url ?: return
-        downloadGateway.download(episode)
+        validateRemoteMedia(episode.id.value, source)?.let { error ->
+            mutableState.update { it.copy(message = error) }
+            return
+        }
+        val podcastTitle = state.value.podcasts.firstOrNull { it.id == episode.podcastId }?.title.orEmpty().ifBlank { "Podcast" }
         mutableState.update { value ->
             value.copy(downloads = value.downloads.filterNot { it.episodeId == episode.id } + Download(episode.id, source, DownloadState.Queued))
         }
-        database?.let { db -> scope.launch {
-            val now = currentTimeMillis()
-            db.downloadDao().upsert(DownloadEntity(episode.id.value, source, DownloadState.Queued.name, null, 0, null, null, null, now, now, null))
-        } }
+        downloadGateway.download(episode, podcastTitle)
     }
 
     fun removeDownload(episodeId: EpisodeId) {
         downloadGateway.delete(episodeId)
         mutableState.update { it.copy(downloads = it.downloads.filterNot { item -> item.episodeId == episodeId }) }
-        database?.let { db -> scope.launch { db.downloadDao().delete(episodeId.value) } }
     }
 
+    fun setCellularDownloadsAllowed(allowed: Boolean) = downloadGateway.setCellularDownloadsAllowed(allowed)
+
     fun recordPlayback(episode: Episode, positionMillis: Long, durationMillis: Long) {
-        val now = currentTimeMillis()
-        val clampedPosition = positionMillis.coerceIn(0, durationMillis.takeIf { it > 0 } ?: Long.MAX_VALUE)
-        var persistedRecord: PlaybackHistory? = null
-        mutableState.update { value ->
-            val previous = value.history.firstOrNull { it.episodeId == episode.id }
-            val sampleDelta = previous?.let { (clampedPosition - it.positionMillis).coerceIn(0, 10_000) } ?: 0
-            val completed = durationMillis > 0 && clampedPosition * 100 >= durationMillis * 95
-            val record = PlaybackHistory(
-                episode.id, now, clampedPosition, durationMillis.takeIf { it > 0 },
-                (previous?.totalPlayedMillis ?: 0) + sampleDelta, completed,
-            )
-            persistedRecord = record
-            value.copy(history = listOf(record) + value.history.filterNot { it.episodeId == episode.id })
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playbackWriteMutex.withLock {
+                val now = nextPlaybackTimestamp()
+                val clampedPosition = positionMillis.coerceIn(0, durationMillis.takeIf { it > 0 } ?: Long.MAX_VALUE)
+                var persistedRecord: PlaybackHistory? = null
+                mutableState.update { value ->
+                    val previous = value.history.firstOrNull { it.episodeId == episode.id }
+                    val sampleDelta = previous?.let { (clampedPosition - it.positionMillis).coerceIn(0, 10_000) } ?: 0
+                    val completed = durationMillis > 0 && clampedPosition * 100 >= durationMillis * 95
+                    val record = PlaybackHistory(
+                        episode.id, now, clampedPosition, durationMillis.takeIf { it > 0 },
+                        (previous?.totalPlayedMillis ?: 0) + sampleDelta, completed,
+                    )
+                    persistedRecord = record
+                    value.copy(history = listOf(record) + value.history.filterNot { it.episodeId == episode.id })
+                }
+                val record = persistedRecord ?: return@withLock
+                database?.userDataDao()?.recordPlayback(
+                    episodeId = episode.id.value,
+                    lastPlayedAt = now,
+                    positionMs = record.positionMillis,
+                    durationMs = durationMillis.takeIf { it > 0 },
+                    totalPlayedMs = record.totalPlayedMillis,
+                    completed = record.completed,
+                    completedAt = now.takeIf { record.completed },
+                    updatedAt = now,
+                )
+            }
         }
-        val record = persistedRecord ?: return
-        database?.let { db -> scope.launch {
-            db.userDataDao().recordPlayback(
-                episodeId = episode.id.value,
-                lastPlayedAt = now,
-                positionMs = record.positionMillis,
-                durationMs = durationMillis.takeIf { it > 0 },
-                totalPlayedMs = record.totalPlayedMillis,
-                completed = record.completed,
-                completedAt = now.takeIf { record.completed },
-                updatedAt = now,
-            )
-        } }
     }
 
     fun markPlayed(episode: Episode) = recordPlayback(
@@ -374,7 +503,7 @@ class MollieStore(
             podcast.id.value, podcast.feedUrl, podcast.canonicalFeedUrl, podcast.websiteUrl, podcast.title,
             podcast.author, podcast.description, podcast.artworkUrl, podcast.language, podcast.copyright,
             podcast.isExplicit, normalizedTitle, normalizedAuthor, podcast.episodeCount, podcast.latestEpisodeAtMillis,
-            currentTimeMillis(),
+            clock(),
         )
         val aliases = listOf(
             FeedAliasEntity(normalizeFeedUrl(podcast.feedUrl), podcast.id.value),
@@ -395,12 +524,12 @@ class MollieStore(
             enclosures,
             categories,
             mappings,
-            SubscriptionEntity(podcast.id.value, currentTimeMillis()),
+            SubscriptionEntity(podcast.id.value, clock()),
         )
     }
 
     private suspend fun persistSyncState(db: MollieDatabase, feedUrl: String, result: FeedRefreshResult) {
-        val now = currentTimeMillis()
+        val now = clock()
         val resolvedId = db.podcastDao().resolveByFeedAlias(normalizeFeedUrl(feedUrl))
         val podcastId = when (result) {
             is FeedRefreshResult.Updated -> result.feed.podcast.id.value
@@ -409,7 +538,7 @@ class MollieStore(
         val previous = db.syncDao().state(podcastId)
         val state = when (result) {
             is FeedRefreshResult.Updated -> FeedSyncStateEntity(podcastId, result.etag, result.lastModified, now, now, 200, null, null)
-            is FeedRefreshResult.NotModified -> FeedSyncStateEntity(podcastId, previous?.etag, previous?.lastModified, now, previous?.lastSuccessAt, 304, null, null)
+            is FeedRefreshResult.NotModified -> FeedSyncStateEntity(podcastId, previous?.etag, previous?.lastModified, now, now, 304, null, null)
             is FeedRefreshResult.HttpFailure -> FeedSyncStateEntity(podcastId, previous?.etag, previous?.lastModified, now, previous?.lastSuccessAt, result.status, "http", refreshError(result))
             is FeedRefreshResult.NetworkFailure -> FeedSyncStateEntity(podcastId, previous?.etag, previous?.lastModified, now, previous?.lastSuccessAt, null, "network", result.message)
             is FeedRefreshResult.ParseFailure -> FeedSyncStateEntity(podcastId, previous?.etag, previous?.lastModified, now, previous?.lastSuccessAt, 200, "parse", result.message)
@@ -430,6 +559,9 @@ class MollieStore(
         }
         if (podcasts.isEmpty()) return false
         val history = db.userDataDao().allHistory().map { PlaybackHistory(EpisodeId(it.episodeId), it.lastPlayedAt, it.positionMs, it.durationSnapshotMs, it.totalPlayedMs, it.completed) }
+        playbackWriteMutex.withLock {
+            lastPlaybackTimestamp = maxOf(lastPlaybackTimestamp, history.maxOfOrNull(PlaybackHistory::lastPlayedAtMillis) ?: 0L)
+        }
         val positions = history.associate { it.episodeId.value to if (it.completed) 0L else it.positionMillis }
         val restoredEpisodes = db.episodeDao().allEpisodes().map { entity -> entity.toModel(enclosures[entity.episodeId].orEmpty(), positions[entity.episodeId] ?: 0) }
         // The first prototype shipped a non-existent placeholder MP3. Do not expose it as playable media.
@@ -449,6 +581,13 @@ class MollieStore(
         }
         return !hasLegacyPlaceholder
     }
+
+    private fun nextPlaybackTimestamp(): Long {
+        val now = clock()
+        return maxOf(now, lastPlaybackTimestamp + 1).also { lastPlaybackTimestamp = it }
+    }
+
+    private companion object { const val MAX_FEED_PREVIEWS = 20 }
 }
 
 private fun Episode.toEntity() = EpisodeEntity(

@@ -3,10 +3,12 @@ package mammoth.mollie.caster.data.database
 import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
+@OptIn(ExperimentalForeignApi::class)
 fun databaseBuilder(): RoomDatabase.Builder<MollieDatabase> {
     val directory = NSFileManager.defaultManager.URLForDirectory(
         directory = NSApplicationSupportDirectory,

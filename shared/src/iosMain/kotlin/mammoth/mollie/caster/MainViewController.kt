@@ -7,13 +7,16 @@ import mammoth.mollie.caster.data.database.buildDatabase
 import mammoth.mollie.caster.data.database.databaseBuilder
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
 import mammoth.mollie.caster.playback.IosPodcastPlayer
+import mammoth.mollie.caster.downloads.IosEpisodeDownloadGateway
 import platform.Foundation.NSProcessInfo
 
 fun MainViewController() = ComposeUIViewController {
+    val downloads = remember { IosEpisodeDownloadGateway() }
     val store = remember {
         val environment = NSProcessInfo.processInfo.environment
         val proxyUrl = (environment["MOLLIE_PODCAST_INDEX_PROXY_URL"] as? String).orEmpty().trim()
         MollieStore(
+            downloadGateway = downloads,
             database = buildDatabase(databaseBuilder()),
             discoveryConfig = DiscoveryConfig(
                 appleStorefront = (environment["MOLLIE_APPLE_STOREFRONT"] as? String).orEmpty().ifBlank { "us" },
@@ -24,6 +27,6 @@ fun MainViewController() = ComposeUIViewController {
             ),
         )
     }
-    val player = remember { IosPodcastPlayer() }
+    val player = remember { IosPodcastPlayer(downloads) }
     MolliecasterApp(store = store, player = player)
 }

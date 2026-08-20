@@ -8,7 +8,7 @@ Molliecaster is a Compose Multiplatform podcast client migrated from the product
 - Subscribe to RSS feeds; browse podcast details and episodes; search by podcast title or author; and sort episodes newest- or oldest-first.
 - Favourite episodes, retain playback history and resume positions, and import or export OPML subscriptions. OPML imports are de-duplicated and report failures without discarding valid feeds.
 - Play real episode audio with play/pause, seeking, 15-second skip controls, playback speeds from 0.8x to 2x, and a 15-, 30-, or 60-minute sleep timer.
-- Download, remove, and browse downloaded episodes on Android. Android also provides persistent playback, a Media3 media session, notification, and lock-screen controls.
+- Download, remove, browse, and play episodes offline on Android, iOS, desktop, and Web within each platform's storage constraints. Android also provides persistent playback, a Media3 media session, notification, lock-screen controls, and transparent segmented stream caching.
 
 ### Platform support
 
@@ -18,7 +18,8 @@ Molliecaster is a Compose Multiplatform podcast client migrated from the product
 | Local persistence | Room + bundled SQLite | Room + bundled SQLite | Room + bundled SQLite | In-memory until SQLite Web Worker wiring is added |
 | Audio engine | Media3 | AVPlayer | JavaFX Media | HTMLAudio |
 | System playback controls | Media session, notification, lock screen | AVAudioSession; Now Playing/remote commands pending | Media-key support pending | Browser-managed background playback; Media Session metadata pending |
-| Downloads | Persistent Media3 cache | Not available | Not available | Not available |
+| Downloads | Media3 + public Downloads export | Application Support | User Downloads folder | Origin Cache Storage + browser save |
+| Transparent stream cache | 5 GB Media3 LRU | Pending | Pending | Pending |
 
 \* Browser RSS and Apple Podcasts requests require the relevant server to allow CORS. A production web deployment needs a trusted fetch proxy for feeds that do not.
 

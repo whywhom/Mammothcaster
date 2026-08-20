@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Favorite
@@ -59,6 +60,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.ViewList
@@ -75,6 +77,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -89,6 +92,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -124,6 +128,8 @@ import mammoth.mollie.caster.data.MollieStore
 import mammoth.mollie.caster.data.discovery.recommendFromDiscovery
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.model.EpisodeOrder
+import mammoth.mollie.caster.model.Download
+import mammoth.mollie.caster.model.DownloadState
 import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategories
 import mammoth.mollie.caster.model.PodcastCategory
@@ -133,7 +139,7 @@ import mammoth.mollie.caster.playback.PreviewPodcastPlayer
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import mammoth.mollie.caster.ui.theme.MolliecasterTheme
 
-private enum class Destination { Home, Search, Library }
+private enum class Destination { Home, Search, Library, Settings }
 
 private enum class LibrarySection(val title: String) {
     Shows("Shows"),
@@ -182,7 +188,7 @@ fun MolliecasterApp(
             store.clearMessage()
         }
     }
-    LaunchedEffect(playerState.episode?.id, playerState.positionMillis / 5_000L) {
+    LaunchedEffect(playerState.episode?.id, playerState.positionMillis / 5_000L, playerState.status) {
         playerState.episode?.takeIf { playerState.positionMillis > 0 }?.let { episode ->
             store.recordPlayback(episode, playerState.positionMillis, playerState.durationMillis)
         }
@@ -210,10 +216,13 @@ fun MolliecasterApp(
                     episode = library.episodes.firstOrNull { it.id == selectedEpisode!!.id } ?: selectedEpisode!!,
                     state = library,
                     store = store,
+                    player = player,
+                    playerState = playerState,
                     onPlay = {
                         startPlayback(it)
                         if (player.capabilities.realPlayback) playerExpanded = true
                     },
+                    onOpenPlayer = { playerExpanded = true },
                     darkTheme = darkTheme,
                     onToggleTheme = { darkTheme = !darkTheme },
                     onBack = { selectedEpisode = null },
@@ -250,7 +259,7 @@ fun MolliecasterApp(
                                     IconButton(
                                         modifier = Modifier.size(40.dp),
                                         onClick = { settingsExpanded = true },
-                                    ) { Icon(Icons.Default.MoreVert, "More settings") }
+                                    ) { Icon(Icons.Default.MoreVert, "More actions") }
                                     DropdownMenu(
                                         expanded = settingsExpanded,
                                         onDismissRequest = { settingsExpanded = false },
@@ -261,8 +270,8 @@ fun MolliecasterApp(
                                             onClick = {
                                                 settingsExpanded = false
                                                 scope.launch {
-                                                    store.refreshSubscriptions()
-                                                    store.refreshDiscovery()
+                                                    store.refreshSubscriptions(force = true)
+                                                    store.refreshDiscovery(force = true)
                                                 }
                                             },
                                         )
@@ -304,6 +313,7 @@ fun MolliecasterApp(
                                             Destination.Home -> Icons.Default.Home
                                             Destination.Search -> Icons.Default.Search
                                             Destination.Library -> Icons.Default.LibraryMusic
+                                            Destination.Settings -> Icons.Default.Settings
                                         }, item.name) },
                                         label = { Text(item.name) },
                                     )
@@ -381,6 +391,28 @@ fun MolliecasterApp(
                                     startPlayback(it)
                                     if (player.capabilities.realPlayback) playerExpanded = true
                                 },
+                            )
+                            Destination.Settings -> SettingsScreen(
+                                darkTheme = darkTheme,
+                                player = player,
+                                playerState = playerState,
+                                downloadsSupported = library.downloadsSupported,
+                                cellularDownloadControlSupported = library.cellularDownloadControlSupported,
+                                cellularDownloadsAllowed = library.cellularDownloadsAllowed,
+                                refreshing = library.busy,
+                                onToggleTheme = { darkTheme = !darkTheme },
+                                onRefresh = {
+                                    scope.launch {
+                                        store.refreshSubscriptions(force = true)
+                                        store.refreshDiscovery(force = true)
+                                    }
+                                },
+                                onManageDownloads = {
+                                    destination = Destination.Library
+                                    selectedLibrarySection = LibrarySection.Downloaded
+                                },
+                                onCellularDownloadsAllowedChange = store::setCellularDownloadsAllowed,
+                                onOpml = { opml = true },
                             )
                         }
                     }
@@ -852,7 +884,7 @@ private fun LibrarySectionDetails(
     val subscriptions = state.podcasts.filter(Podcast::isSubscribed)
     val subscribedIds = subscriptions.mapTo(mutableSetOf(), Podcast::id)
     val favorites = state.episodes.filter { it.id in state.favoriteIds }
-    val downloaded = state.downloads.mapNotNull { download ->
+    val downloaded = state.downloads.filter { it.state == DownloadState.Completed }.mapNotNull { download ->
         state.episodes.firstOrNull { it.id == download.episodeId }
     }
     val latestEpisodes = state.episodes.filter { it.podcastId in subscribedIds }.sortedByDescending(Episode::publishedAtMillis)
@@ -1052,8 +1084,13 @@ private fun EpisodeRow(
                 if (store != null) {
                     val favorite = episode.id in state.favoriteIds
                     IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) { Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite") }
-                    val downloaded = state.downloads.any { it.episodeId == episode.id }
-                    IconButton(enabled = state.downloadsSupported || downloaded, onClick = { if (downloaded) store.removeDownload(episode.id) else store.enqueueDownload(episode) }) { Icon(if (downloaded) Icons.Default.CloudDownload else Icons.Default.Download, if (downloaded) "Delete download" else "Download") }
+                    val download = state.downloads.firstOrNull { it.episodeId == episode.id }
+                    DownloadAction(
+                        download = download,
+                        supported = state.downloadsSupported,
+                        onDownload = { store.enqueueDownload(episode) },
+                        onRemove = { store.removeDownload(episode.id) },
+                    )
                 }
             }
         }
@@ -1066,14 +1103,17 @@ private fun EpisodeDetails(
     episode: Episode,
     state: LibraryState,
     store: MollieStore,
+    player: PodcastPlayer,
+    playerState: mammoth.mollie.caster.playback.PlayerState,
     onPlay: (Episode) -> Unit,
+    onOpenPlayer: () -> Unit,
     darkTheme: Boolean,
     onToggleTheme: () -> Unit,
     onBack: () -> Unit,
 ) {
     val podcast = state.podcasts.firstOrNull { it.id == episode.podcastId }
     val favorite = episode.id in state.favoriteIds
-    val downloaded = state.downloads.any { it.episodeId == episode.id }
+    val download = state.downloads.firstOrNull { it.episodeId == episode.id }
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -1090,6 +1130,9 @@ private fun EpisodeDetails(
             contentPadding = PaddingValues(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            playerState.episode?.let { nowPlaying ->
+                item { MiniPlayer(nowPlaying, playerState.isPlaying, player, onOpenPlayer) }
+            }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     PodcastArtwork(episode.artworkUrl ?: podcast?.artworkUrl, episode.title, 132)
@@ -1110,14 +1153,64 @@ private fun EpisodeDetails(
                     IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) {
                         Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite")
                     }
-                    IconButton(
-                        enabled = state.downloadsSupported || downloaded,
-                        onClick = { if (downloaded) store.removeDownload(episode.id) else store.enqueueDownload(episode) },
-                    ) { Icon(if (downloaded) Icons.Default.CloudDownload else Icons.Default.Download, if (downloaded) "Delete download" else "Download") }
+                    DownloadAction(
+                        download = download,
+                        supported = state.downloadsSupported,
+                        onDownload = { store.enqueueDownload(episode) },
+                        onRemove = { store.removeDownload(episode.id) },
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DownloadAction(
+    download: Download?,
+    supported: Boolean,
+    onDownload: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val state = download?.state
+    val active = state == DownloadState.Queued || state == DownloadState.Downloading
+    val progress = download?.takeIf { state == DownloadState.Downloading }?.downloadProgress()
+    val description = when (state) {
+        DownloadState.Queued -> "Cancel queued download"
+        DownloadState.Downloading -> progress?.let { "Cancel download, ${(it * 100).toInt()} percent complete" } ?: "Cancel download"
+        DownloadState.Completed -> "Delete downloaded episode"
+        DownloadState.Failed -> "Clear failed download"
+        DownloadState.Removing -> "Removing downloaded episode"
+        null -> "Download episode"
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            enabled = state != DownloadState.Removing && (supported || download != null),
+            onClick = if (download == null) onDownload else onRemove,
+        ) {
+            Icon(
+                imageVector = if (state == DownloadState.Completed) Icons.Default.DownloadDone else Icons.Default.Download,
+                contentDescription = description,
+                tint = if (state == DownloadState.Completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (active) {
+            Spacer(Modifier.width(6.dp))
+            if (progress == null) {
+                LinearProgressIndicator(modifier = Modifier.width(64.dp))
+            } else {
+                LinearProgressIndicator(progress = { progress }, modifier = Modifier.width(64.dp))
+            }
+        } else if (state == DownloadState.Failed) {
+            Text("Failed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+private fun Download.downloadProgress(): Float? {
+    val total = totalBytes?.takeIf { it > 0L } ?: return null
+    return (receivedBytes.toDouble() / total.toDouble()).toFloat().coerceIn(0f, 1f)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1545,6 +1638,192 @@ private fun ThemeToggle(darkTheme: Boolean, onToggle: () -> Unit) {
             if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
             if (darkTheme) "Use light theme" else "Use dark theme",
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScreen(
+    darkTheme: Boolean,
+    player: PodcastPlayer,
+    playerState: mammoth.mollie.caster.playback.PlayerState,
+    downloadsSupported: Boolean,
+    cellularDownloadControlSupported: Boolean,
+    cellularDownloadsAllowed: Boolean,
+    refreshing: Boolean,
+    onToggleTheme: () -> Unit,
+    onRefresh: () -> Unit,
+    onManageDownloads: () -> Unit,
+    onCellularDownloadsAllowedChange: (Boolean) -> Unit,
+    onOpml: () -> Unit,
+) {
+    var speedExpanded by remember { mutableStateOf(false) }
+    var sleepExpanded by remember { mutableStateOf(false) }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Settings", style = MaterialTheme.typography.headlineLarge)
+                    Text(
+                        "Control appearance, listening, downloads, and your library data.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            item {
+                SettingsGroup("Appearance") {
+                    SettingsSwitchRow(
+                        title = "Dark theme",
+                        summary = if (darkTheme) "Using the dark Aether theme" else "Using the light Aether theme",
+                        checked = darkTheme,
+                        onCheckedChange = { onToggleTheme() },
+                    )
+                }
+            }
+            item {
+                SettingsGroup("Playback") {
+                    Box {
+                        SettingsActionRow(
+                            title = "Playback speed",
+                            summary = "${formatPlaybackSpeed(playerState.speed)}x",
+                            onClick = { speedExpanded = true },
+                        )
+                        DropdownMenu(expanded = speedExpanded, onDismissRequest = { speedExpanded = false }) {
+                            PreviewPodcastPlayer.SPEEDS.forEach { speed ->
+                                DropdownMenuItem(
+                                    text = { Text("${formatPlaybackSpeed(speed)}x") },
+                                    onClick = {
+                                        player.setSpeed(speed)
+                                        speedExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Box {
+                        SettingsActionRow(
+                            title = "Sleep timer",
+                            summary = playerState.sleepTimerEndsAtMillis?.let { "Active" } ?: "Off",
+                            onClick = { sleepExpanded = true },
+                        )
+                        DropdownMenu(expanded = sleepExpanded, onDismissRequest = { sleepExpanded = false }) {
+                            listOf(15, 30, 60).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = { Text("$minutes minutes") },
+                                    onClick = {
+                                        player.setSleepTimer(minutes)
+                                        sleepExpanded = false
+                                    },
+                                )
+                            }
+                            if (playerState.sleepTimerEndsAtMillis != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Turn off sleep timer") },
+                                    onClick = {
+                                        player.setSleepTimer(null)
+                                        sleepExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    SettingsActionRow(
+                        title = "Skip interval",
+                        summary = "15 seconds backward and forward",
+                        enabled = false,
+                        onClick = {},
+                    )
+                }
+            }
+            item {
+                SettingsGroup("Downloads") {
+                    if (cellularDownloadControlSupported) {
+                        SettingsSwitchRow(
+                            title = "Download over mobile data",
+                            summary = if (cellularDownloadsAllowed) "Downloads can use Wi-Fi or mobile data" else "Downloads use Wi-Fi only",
+                            checked = cellularDownloadsAllowed,
+                            onCheckedChange = onCellularDownloadsAllowedChange,
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    }
+                    SettingsActionRow(
+                        title = "Manage downloads",
+                        summary = if (downloadsSupported) "View downloaded episodes" else "Downloads are not available on this platform",
+                        enabled = downloadsSupported,
+                        onClick = onManageDownloads,
+                    )
+                }
+            }
+            item {
+                SettingsGroup("Library & data") {
+                    SettingsActionRow(
+                        title = if (refreshing) "Refreshing subscriptions…" else "Refresh subscriptions",
+                        summary = "Check your followed podcasts for new episodes",
+                        enabled = !refreshing,
+                        onClick = onRefresh,
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    SettingsActionRow(
+                        title = "Import or export OPML",
+                        summary = "Move subscriptions between podcast apps",
+                        onClick = onOpml,
+                    )
+                }
+            }
+            item {
+                Text(
+                    "Molliecaster",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+    }
+}
+
+@Composable
+private fun SettingsGroup(title: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
+        Surface(
+            color = AetherTheme.colors.glass,
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        ) {
+            Column { content() }
+        }
+    }
+}
+
+@Composable
+private fun SettingsActionRow(title: String, summary: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).padding(horizontal = 16.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(title: String, summary: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.padding(horizontal = 16.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

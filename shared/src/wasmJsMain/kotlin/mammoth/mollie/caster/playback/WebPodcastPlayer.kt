@@ -10,14 +10,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mammoth.mollie.caster.model.Episode
+import mammoth.mollie.caster.downloads.WebEpisodeDownloadGateway
+import mammoth.mollie.caster.data.cache.validateRemoteMedia
 import mammoth.mollie.caster.platform.currentTimeMillis
 import org.w3c.dom.Audio
 
 /** Browser HTMLAudio adapter. Playback must be initiated from a user gesture. */
-class WebPodcastPlayer : PodcastPlayer {
+class WebPodcastPlayer(private val mediaFiles: WebEpisodeDownloadGateway) : PodcastPlayer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val audio = Audio("")
     private val mutableState = MutableStateFlow(PlayerState())
+    private var loadGeneration = 0
     override val state: StateFlow<PlayerState> = mutableState.asStateFlow()
     override val capabilities = PlayerCapabilities(realPlayback = true, backgroundPlayback = true)
 
@@ -45,15 +48,34 @@ class WebPodcastPlayer : PodcastPlayer {
     }
 
     override fun play(episode: Episode) {
-        val source = episode.enclosures.firstOrNull()?.url ?: run {
-            mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = "This episode has no playable audio URL")
+        episode.enclosures.firstOrNull()?.let { enclosure ->
+            validateRemoteMedia(episode.id.value, enclosure.url)?.let {
+                mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = it)
+                return
+            }
+        }
+        val generation = ++loadGeneration
+        val previousSource = audio.src
+        mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Loading, positionMillis = episode.playbackPositionMillis, speed = state.value.speed)
+        val start: (String) -> Unit = { source ->
+            if (generation == loadGeneration) {
+                mediaFiles.revoke(previousSource)
+                audio.src = source
+                audio.playbackRate = state.value.speed.toDouble()
+                audio.currentTime = episode.playbackPositionMillis / 1000.0
+                audio.play()
+            } else mediaFiles.revoke(source)
+        }
+        if (!mediaFiles.isCached(episode)) {
+            val remote = episode.enclosures.firstOrNull()?.url ?: return
+            start(remote)
             return
         }
-        mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Loading, positionMillis = episode.playbackPositionMillis, speed = state.value.speed)
-        audio.src = source
-        audio.playbackRate = state.value.speed.toDouble()
-        audio.currentTime = episode.playbackPositionMillis / 1000.0
-        audio.play()
+        mediaFiles.resolveForPlayback(
+            episode,
+            onReady = start,
+            onError = { message -> if (generation == loadGeneration) mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = message) },
+        )
     }
 
     override fun toggle() {

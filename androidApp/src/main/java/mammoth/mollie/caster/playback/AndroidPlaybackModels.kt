@@ -50,7 +50,6 @@ enum class EpisodeDownloadStatus {
     Paused,
     Completed,
     Failed,
-    MissingFile,
     Removing,
     Restarting,
 }
@@ -61,5 +60,7 @@ data class EpisodeDownloadState(
     val status: EpisodeDownloadStatus,
     val percentDownloaded: Float,
     val bytesDownloaded: Long,
+    val totalBytes: Long? = null,
+    val localReference: String? = null,
     val failureReason: Int? = null,
 )

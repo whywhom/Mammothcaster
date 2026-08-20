@@ -13,13 +13,17 @@ import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.model.EpisodeId
 import mammoth.mollie.caster.model.PodcastId
 import mammoth.mollie.caster.model.Enclosure
+import mammoth.mollie.caster.data.cache.validateRemoteMedia
 import mammoth.mollie.caster.playback.PlayerState
 import mammoth.mollie.caster.playback.PlayerCapabilities
 import mammoth.mollie.caster.playback.PlayerStatus
 import mammoth.mollie.caster.playback.PodcastPlayer
 import mammoth.mollie.caster.platform.currentTimeMillis
 
-class AndroidPodcastPlayerAdapter(context: Context) : PodcastPlayer, AutoCloseable {
+class AndroidPodcastPlayerAdapter(
+    context: Context,
+    private val downloads: AndroidDownloadGateway,
+) : PodcastPlayer, AutoCloseable {
     private val controller = AndroidPlaybackController(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutableState = MutableStateFlow(PlayerState())
@@ -30,6 +34,8 @@ class AndroidPodcastPlayerAdapter(context: Context) : PodcastPlayer, AutoCloseab
         backgroundPlayback = true,
         lockScreenControls = true,
         notificationControls = true,
+        transparentStreamCache = true,
+        partialOfflinePlayback = true,
     )
 
     init {
@@ -73,11 +79,15 @@ class AndroidPodcastPlayerAdapter(context: Context) : PodcastPlayer, AutoCloseab
         val enclosure = episode.enclosures.firstOrNull { it.mimeType?.startsWith("audio/") == true }
             ?: episode.enclosures.firstOrNull()
             ?: return
+        validateRemoteMedia(episode.id.value, enclosure.url)?.let { message ->
+            mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = message)
+            return
+        }
         this.episode = episode
         controller.load(
             AndroidPlaybackItem(
                 episodeId = episode.id.value,
-                mediaUrl = enclosure.url,
+                mediaUrl = downloads.localReference(episode.id) ?: enclosure.url,
                 title = episode.title,
                 podcastTitle = episode.author.ifBlank { "Molliecaster" },
                 artworkUrl = episode.artworkUrl,

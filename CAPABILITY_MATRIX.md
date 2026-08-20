@@ -12,7 +12,10 @@
 | OPML import/export | Implemented codec/UI | Implemented codec/UI | Implemented codec/UI | Implemented codec/UI |
 | Audio playback | Media3 service | AVPlayer | JavaFX Media | HTMLAudio |
 | Background/lock screen/notification | MediaSessionService | AVAudioSession playback; Now Playing/remote commands pending | OS media-key integration pending | Browser-managed background playback; Media Session metadata pending |
-| Downloads | Media3 persistent cache | Disabled | Disabled | Disabled; browser limitations |
+| Downloads | Media3 transfer/index plus MediaStore export to public `Downloads/Molliecaster/<podcast>/<episode>` | NSURLSession to Application Support | OS `Downloads/Molliecaster/<podcast>/<episode>` | Cache Storage plus browser-managed public save |
+| Local-first playback / stream cache | Public download first; 5 GB Media3 LRU stream cache then network | Manual download first; otherwise AVPlayer streams | Manual download first; otherwise JavaFX streams | Manual Cache Storage download first; otherwise HTMLAudio streams |
+| Partial cached playback | Implemented by Media3 segmented cache | Pending single-request cache adapter | Pending range-aware cache adapter | Pending service-worker/range cache adapter |
+| Metadata freshness | Durable subscribed RSS aggregate 6h; discovery 1h and unsubscribed detail 24h in-session | Same | Same | All metadata in-session until durable Web database wiring |
 
 ## Honest platform constraints
 
@@ -21,5 +24,12 @@
 - Popular results currently use the Apple storefront Top 10. Recommendations are re-ranked on-device from user-owned activity. Podcast Index code and source merging remain available, but the source is bypassed unless `DiscoveryConfig.podcastIndexEnabled` is explicitly enabled.
 - Podcast Index credentials embedded in a client binary are extractable. If the source is enabled in the future, production builds should use a trusted proxy; direct keys are only a local-development fallback.
 - Room 3.0.1 supports Wasm, but `WebWorkerSQLiteDriver` needs a compatible SQLite worker and OPFS/static asset setup. Until that worker is added, Web uses the shared in-memory store for the visible app state.
-- Android is the complete playback target: Media3 owns playback, the media session, notification, lock-screen controls, 15-second seek increments, speed and persistent download cache.
-- iOS, desktop and Web now provide basic real playback through AVPlayer, JavaFX Media and HTMLAudio respectively. Downloads remain Android-only, and non-Android lock-screen/media-key integration is still a separate milestone.
+- Android uses Media3 for durable transfer/index state, then exports completed bytes through MediaStore (or the legacy public directory on API 23–28). Media3 separately owns playback, the media session, notification, lock-screen controls, 15-second seek increments, speed, and a 5 GB automatic LRU streaming cache. Local `file://`/`content://` downloads bypass that stream cache to avoid another copy. A settings UI for the 1/2/5/10+ GB policy presets is pending.
+- iOS stores user-requested files under Application Support (the standard sandboxed durable location). Automatic cache fill is disabled until AVPlayer can consume the same transfer; starting a second full download during streaming would waste bandwidth. Files-app export is a separate product choice.
+- Desktop uses the user's Downloads directory for explicit downloads. Automatic cache fill is disabled until the JavaFX player can consume a shared range-aware transfer.
+- Browsers cannot silently create `Molliecaster/<podcast>` folders in the user's Downloads directory. Web therefore keeps an offline copy in origin-scoped Cache Storage and asks the browser to save a sanitized flat `Podcast - Episode.ext` public copy.
+- iOS, desktop and Web provide real playback through AVPlayer, JavaFX Media and HTMLAudio respectively; non-Android lock-screen/media-key integration remains a separate milestone.
+- Playback progress is durable locally on Android, iOS, and desktop and uses serialized, timestamp-guarded latest-write-wins updates. Web resume/history is in-memory and is lost on reload until its SQLite Worker is wired. Cross-device/server synchronization, Wi-Fi-only policy enforcement, and network-restored/background sync require an account/authenticated progress API that is not present in this repository.
+- The shared retry policy defines 30-second, 2-minute, and 10-minute delays for timeouts, connection loss, and 5xx responses only. Desktop manual downloads apply it; exact scheduler integration remains pending for Android, iOS, and Web.
+- Episode IDs and remote HTTP(S) audio URLs are validated before playback/download. Checksum verification is conditional on feeds or a future API supplying a trusted checksum; current RSS models do not provide one.
+- At startup, each platform reconciles its completed-download index against the authoritative local asset. Missing, externally deleted, malformed, or browser-evicted files are removed from the platform index, shared UI state, and Room download records, so the episode returns to the normal download action instead of appearing failed or downloaded.

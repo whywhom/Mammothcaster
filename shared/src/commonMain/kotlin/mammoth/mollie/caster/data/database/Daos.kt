@@ -42,6 +42,9 @@ interface PodcastDao {
 
     @Upsert
     suspend fun upsertAlias(alias: FeedAliasEntity)
+
+    @Query("UPDATE podcasts SET last_refresh_at = :validatedAt WHERE podcast_id = :podcastId")
+    suspend fun updateLastRefreshAt(podcastId: String, validatedAt: Long)
 }
 
 @Dao

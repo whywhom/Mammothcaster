@@ -31,6 +31,8 @@ data class PlayerCapabilities(
     val backgroundPlayback: Boolean = false,
     val lockScreenControls: Boolean = false,
     val notificationControls: Boolean = false,
+    val transparentStreamCache: Boolean = false,
+    val partialOfflinePlayback: Boolean = false,
 )
 
 interface PodcastPlayer {

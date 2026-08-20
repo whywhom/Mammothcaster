@@ -9,18 +9,32 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.cinterop.ExperimentalForeignApi
 import mammoth.mollie.caster.model.Episode
+import mammoth.mollie.caster.downloads.IosEpisodeDownloadGateway
+import mammoth.mollie.caster.data.cache.validateRemoteMedia
 import mammoth.mollie.caster.platform.currentTimeMillis
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.setActive
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
+import platform.AVFoundation.currentItem
+import platform.AVFoundation.currentTime
+import platform.AVFoundation.defaultRate
+import platform.AVFoundation.duration
+import platform.AVFoundation.pause
+import platform.AVFoundation.playImmediatelyAtRate
+import platform.AVFoundation.rate
+import platform.AVFoundation.replaceCurrentItemWithPlayerItem
+import platform.AVFoundation.seekToTime
 import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMakeWithSeconds
 import platform.Foundation.NSURL
 
 /** AVPlayer/AVAudioSession adapter for iOS. Background audio entitlement remains an app-level setting. */
-class IosPodcastPlayer : PodcastPlayer {
+@OptIn(ExperimentalForeignApi::class)
+class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : PodcastPlayer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val player = AVPlayer()
     private val mutableState = MutableStateFlow(PlayerState())
@@ -46,7 +60,10 @@ class IosPodcastPlayer : PodcastPlayer {
     }
 
     override fun play(episode: Episode) {
-        val source = episode.enclosures.firstOrNull()?.url ?: return fail(episode, "This episode has no playable audio URL")
+        episode.enclosures.firstOrNull()?.let { enclosure ->
+            validateRemoteMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
+        }
+        val source = mediaFiles.playbackSource(episode).ifBlank { return fail(episode, "This episode has no playable audio URL") }
         val url = NSURL(string = source)
         if (url == null) return fail(episode, "This episode has an invalid audio URL")
         val speed = state.value.speed

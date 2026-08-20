@@ -21,12 +21,16 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
+        if (Build.VERSION.SDK_INT <= 28 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1002)
+        }
         setContent {
-            val player = remember { AndroidPodcastPlayerAdapter(applicationContext) }
+            val downloads = remember { AndroidDownloadGateway(applicationContext) }
+            val player = remember { AndroidPodcastPlayerAdapter(applicationContext, downloads) }
             val store = remember {
                 val proxyUrl = BuildConfig.PODCAST_INDEX_PROXY_URL.trim()
                 MollieStore(
-                    downloadGateway = AndroidDownloadGateway(applicationContext),
+                    downloadGateway = downloads,
                     database = buildDatabase(databaseBuilder(applicationContext)),
                     discoveryConfig = DiscoveryConfig(
                         appleStorefront = BuildConfig.APPLE_STOREFRONT,
