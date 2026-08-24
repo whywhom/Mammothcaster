@@ -1,4 +1,5 @@
 import org.gradle.api.provider.Provider
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,17 +9,21 @@ plugins {
 fun Provider<String>.orEmptyValue(): String = orElse("").get()
 fun String.asBuildConfigString(): String = "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
-val podcastIndexProxyUrl = providers.gradleProperty("MOLLIE_PODCAST_INDEX_PROXY_URL")
-    .orElse(providers.environmentVariable("MOLLIE_PODCAST_INDEX_PROXY_URL"))
-    .orEmptyValue()
-val podcastIndexApiKey = providers.gradleProperty("MOLLIE_PODCAST_INDEX_API_KEY")
-    .orElse(providers.environmentVariable("MOLLIE_PODCAST_INDEX_API_KEY"))
-    .orEmptyValue()
-val podcastIndexApiSecret = providers.gradleProperty("MOLLIE_PODCAST_INDEX_API_SECRET")
-    .orElse(providers.environmentVariable("MOLLIE_PODCAST_INDEX_API_SECRET"))
-    .orEmptyValue()
-val appleStorefront = providers.gradleProperty("MOLLIE_APPLE_STOREFRONT")
-    .orElse(providers.environmentVariable("MOLLIE_APPLE_STOREFRONT"))
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) file.inputStream().use(::load)
+}
+
+/** CI properties and environment variables intentionally override local developer values. */
+fun localOrExternalProperty(name: String): Provider<String> =
+    providers.gradleProperty(name)
+        .orElse(providers.environmentVariable(name))
+        .orElse(providers.provider { localProperties.getProperty(name).orEmpty() })
+
+val podcastIndexProxyUrl = localOrExternalProperty("MOLLIE_PODCAST_INDEX_PROXY_URL").orEmptyValue()
+val podcastIndexApiKey = localOrExternalProperty("MOLLIE_PODCAST_INDEX_API_KEY").orEmptyValue()
+val podcastIndexApiSecret = localOrExternalProperty("MOLLIE_PODCAST_INDEX_API_SECRET").orEmptyValue()
+val appleStorefront = localOrExternalProperty("MOLLIE_APPLE_STOREFRONT")
     .orElse("us")
     .get()
 
@@ -50,6 +55,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":app"))
     implementation(project(":shared"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.activity.compose)

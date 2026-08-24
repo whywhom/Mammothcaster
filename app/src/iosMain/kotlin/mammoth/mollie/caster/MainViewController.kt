@@ -1,13 +1,13 @@
 package mammoth.mollie.caster
 
-import androidx.compose.ui.window.ComposeUIViewController
 import androidx.compose.runtime.remember
+import androidx.compose.ui.window.ComposeUIViewController
 import mammoth.mollie.caster.data.MollieStore
 import mammoth.mollie.caster.data.database.buildDatabase
 import mammoth.mollie.caster.data.database.databaseBuilder
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
-import mammoth.mollie.caster.playback.IosPodcastPlayer
 import mammoth.mollie.caster.downloads.IosEpisodeDownloadGateway
+import mammoth.mollie.caster.playback.IosPodcastPlayer
 import platform.Foundation.NSProcessInfo
 
 fun MainViewController() = ComposeUIViewController {

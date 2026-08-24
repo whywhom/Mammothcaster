@@ -28,6 +28,21 @@ class RssParserTest {
         assertNull(parseDurationMillis("-1"))
     }
 
+    @Test
+    fun parsesMediaRssArtworkAndUpgradesCleartextUrls() {
+        val parsed = RssParser().parse(
+            """
+                <rss xmlns:media="http://search.yahoo.com/mrss/"><channel>
+                  <title>BBC-style feed</title>
+                  <media:thumbnail url="http://images.example.com/cover.jpg"/>
+                </channel></rss>
+            """.trimIndent(),
+            "https://example.com/feed.xml",
+        )
+
+        assertEquals("https://images.example.com/cover.jpg", parsed.podcast.artworkUrl)
+    }
+
     private companion object {
         val RSS = """
             <?xml version="1.0" encoding="UTF-8"?>

@@ -127,11 +127,11 @@
 			);
 			name = "Build shared framework";
 			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/MolliecasterShared.framework",
+				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/MolliecasterApp.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\n\n# Gradle needs JDK 21 to build MolliecasterShared before Swift compiles.\nexport JAVA_HOME=\"/Users/wua4/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\n\nif [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  echo \"error: JDK 21 was not found at $JAVA_HOME/bin/java.\" >&2\n  exit 1\nfi\n\n\"$JAVA_HOME/bin/java\" -version\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "cd \"$SRCROOT/..\"\n\n# Gradle needs JDK 21 to build MolliecasterApp before Swift compiles.\nexport JAVA_HOME=\"/Users/wua4/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\n\nif [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  echo \"error: JDK 21 was not found at $JAVA_HOME/bin/java.\" >&2\n  exit 1\nfi\n\n\"$JAVA_HOME/bin/java\" -version\n./gradlew :app:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

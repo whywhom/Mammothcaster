@@ -9,7 +9,7 @@
 | Apple Podcasts discovery / RSS preview | iTunes Search API + RSS preview | iTunes Search API + RSS preview | iTunes Search API + RSS preview | iTunes Search API + RSS preview; subject to CORS |
 | Popular/recommended discovery | Apple Top 10; Podcast Index adapter retained but disabled | Apple Top 10; Podcast Index adapter retained but disabled | Apple Top 10; Podcast Index adapter retained but disabled | Apple Top 10 subject to CORS; Podcast Index adapter retained but disabled |
 | Subscribe/favorite/history state | Durable Room | Durable Room | Durable Room | UI; durable Room pending Worker |
-| OPML import/export | Implemented codec/UI | Implemented codec/UI | Implemented codec/UI | Implemented codec/UI |
+| OPML import/export | Android system document picker | iOS Files document picker | Native file dialogs on macOS, Windows, and Linux | Browser file picker / `.opml` download |
 | Audio playback | Media3 service | AVPlayer | JavaFX Media | HTMLAudio |
 | Background/lock screen/notification | MediaSessionService | AVAudioSession playback; Now Playing/remote commands pending | OS media-key integration pending | Browser-managed background playback; Media Session metadata pending |
 | Downloads | Media3 transfer/index plus MediaStore export to public `Downloads/Molliecaster/<podcast>/<episode>` | NSURLSession to Application Support | OS `Downloads/Molliecaster/<podcast>/<episode>` | Cache Storage plus browser-managed public save |

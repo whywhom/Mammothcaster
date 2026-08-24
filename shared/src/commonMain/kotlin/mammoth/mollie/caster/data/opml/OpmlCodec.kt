@@ -14,7 +14,9 @@ object OpmlCodec {
         val seen = mutableSetOf<String>()
         var duplicates = 0
         val entries = xml.select("outline").mapNotNull { outline ->
-            val feed = outline.attr("xmlUrl").ifBlank { outline.attr("xmlurl") }.trim()
+            // Legacy OPML exports frequently contain HTTP feed URLs. Android blocks cleartext
+            // requests, so prefer TLS before de-duplicating and fetching the subscription.
+            val feed = preferHttps(outline.attr("xmlUrl").ifBlank { outline.attr("xmlurl") }.trim())
             if (feed.isBlank()) return@mapNotNull null
             val normalized = normalizeFeedUrl(feed)
             if (!seen.add(normalized)) {
@@ -50,4 +52,12 @@ $outlines
         .replace("\"", "&quot;")
         .replace("<", "&lt;")
         .replace(">", "&gt;")
+
+    private fun preferHttps(feedUrl: String): String = when {
+        feedUrl.startsWith("http://", ignoreCase = true) -> buildString {
+            append("https://")
+            append(feedUrl.substringAfter("://"))
+        }
+        else -> feedUrl
+    }
 }

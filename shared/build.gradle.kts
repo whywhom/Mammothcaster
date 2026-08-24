@@ -1,7 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.gradle.jvm.toolchain.JavaLanguageVersion
-import org.gradle.jvm.toolchain.JavaToolchainService
-import org.gradle.jvm.toolchain.JvmVendorSpec
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
@@ -13,6 +9,10 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+}
+
+compose.resources {
+    publicResClass = true
 }
 
 kotlin {
@@ -44,13 +44,16 @@ kotlin {
                 outputFileName = "molliecaster.js"
             }
         }
-        binaries.executable()
     }
 
     applyDefaultHierarchyTemplate()
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":core:model"))
+            api(project(":core:data"))
+            api(project(":core:playback"))
+            api(project(":core:ui"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -74,6 +77,7 @@ kotlin {
             implementation(libs.ktor.client.mock)
         }
         androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlite.bundled)
         }
@@ -170,19 +174,4 @@ val desktopPackagingJavaHome = if (desktopPackagingRequested) {
             .absolutePath
 } else {
     null
-}
-
-compose.desktop {
-    application {
-        mainClass = "mammoth.mollie.caster.MainKt"
-        desktopPackagingJavaHome?.let { javaHome = it }
-        buildTypes.release.proguard {
-            configurationFiles.from(project.file("proguard-rules.pro"))
-        }
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "Molliecaster"
-            packageVersion = "1.0.2"
-        }
-    }
 }

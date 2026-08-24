@@ -20,6 +20,17 @@ class OpmlCodecTest {
     }
 
     @Test
+    fun legacyHttpFeedsAreUpgradedToHttpsBeforeImport() {
+        val result = OpmlCodec.parse("""
+            <opml version="2.0"><body>
+              <outline text="BBC" xmlUrl="http://newsrss.bbc.co.uk/rss/news.xml"/>
+            </body></opml>
+        """.trimIndent())
+
+        assertEquals("https://newsrss.bbc.co.uk/rss/news.xml", result.entries.single().feedUrl)
+    }
+
+    @Test
     fun exportIsDeterministicAndEscapesXml() {
         val item = Podcast(podcastIdFor("https://example.com/?a=1&b=2"), "https://example.com/?a=1&b=2", title = "A & B", isSubscribed = true)
         val first = OpmlCodec.export(listOf(item))

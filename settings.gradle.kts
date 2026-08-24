@@ -21,4 +21,15 @@ dependencyResolutionManagement {
 rootProject.name = "Molliecaster"
 
 include(":shared")
+include(":core:model")
+include(":core:data")
+include(":core:playback")
+include(":core:ui")
+include(":app")
+include(":feature:home")
+include(":feature:search")
+include(":feature:library")
+include(":feature:podcast")
+include(":feature:player")
+include(":feature:settings")
 include(":androidApp")

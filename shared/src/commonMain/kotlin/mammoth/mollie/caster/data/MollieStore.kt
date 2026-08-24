@@ -12,23 +12,25 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import mammoth.mollie.caster.data.apple.ApplePodcastClient
+import mammoth.mollie.caster.data.apple.ApplePodcastSearchResult
+import mammoth.mollie.caster.data.cache.InMemoryObjectStorage
 import mammoth.mollie.caster.data.cache.MetadataCacheKind
+import mammoth.mollie.caster.data.cache.ObjectStorage
+import mammoth.mollie.caster.data.cache.TTL
 import mammoth.mollie.caster.data.cache.isFresh
 import mammoth.mollie.caster.data.cache.validateRemoteMedia
-import mammoth.mollie.caster.data.database.DownloadEntity
 import mammoth.mollie.caster.data.database.CategoryEntity
+import mammoth.mollie.caster.data.database.DownloadEntity
 import mammoth.mollie.caster.data.database.EpisodeEnclosureEntity
 import mammoth.mollie.caster.data.database.EpisodeEntity
 import mammoth.mollie.caster.data.database.FavoriteEntity
 import mammoth.mollie.caster.data.database.FeedAliasEntity
 import mammoth.mollie.caster.data.database.FeedSyncStateEntity
 import mammoth.mollie.caster.data.database.MollieDatabase
-import mammoth.mollie.caster.data.database.PlaybackHistoryEntity
-import mammoth.mollie.caster.data.database.PodcastEntity
 import mammoth.mollie.caster.data.database.PodcastCategoryEntity
+import mammoth.mollie.caster.data.database.PodcastEntity
 import mammoth.mollie.caster.data.database.SubscriptionEntity
-import mammoth.mollie.caster.data.apple.ApplePodcastClient
-import mammoth.mollie.caster.data.apple.ApplePodcastSearchResult
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
 import mammoth.mollie.caster.data.discovery.PodcastDiscoveryService
 import mammoth.mollie.caster.data.opml.OpmlCodec
@@ -44,57 +46,10 @@ import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategory
 import mammoth.mollie.caster.model.PodcastId
 import mammoth.mollie.caster.platform.currentTimeMillis
-import mammoth.mollie.caster.util.podcastIdFor
 import mammoth.mollie.caster.util.normalizeFeedUrl
+import mammoth.mollie.caster.util.podcastIdFor
 
-private const val STARTER_FEED_URL = "https://feeds.npr.org/510289/podcast.xml"
 private const val LEGACY_PLACEHOLDER_MEDIA_URL = "https://ondemand.npr.org/anon.npr-mp3/npr/pmoney/2025/01/placeholder.mp3"
-
-data class LibraryState(
-    val podcasts: List<Podcast>,
-    val episodes: List<Episode>,
-    val favoriteIds: Set<EpisodeId> = emptySet(),
-    val downloads: List<Download> = emptyList(),
-    val history: List<PlaybackHistory> = emptyList(),
-    val downloadsSupported: Boolean = false,
-    val cellularDownloadControlSupported: Boolean = false,
-    val cellularDownloadsAllowed: Boolean = false,
-    val popularPodcasts: List<Podcast> = emptyList(),
-    val discoveryLoading: Boolean = false,
-    val discoveryWarnings: List<String> = emptyList(),
-    val appleSearchQuery: String = "",
-    val appleSearchResults: List<Podcast> = emptyList(),
-    val appleSearchLoading: Boolean = false,
-    val appleSearchError: String? = null,
-    val appleCategoryKey: String? = null,
-    val appleCategoryResults: List<Podcast> = emptyList(),
-    val appleCategoryLoading: Boolean = false,
-    val appleCategoryError: String? = null,
-    val feedPreview: FeedPreview? = null,
-    val feedPreviewUrl: String? = null,
-    val feedPreviewLoading: Boolean = false,
-    val feedPreviewError: String? = null,
-    val busy: Boolean = false,
-    val message: String? = null,
-)
-
-data class OpmlImportReport(val imported: Int, val duplicates: Int, val failures: List<String>)
-
-data class DownloadSnapshot(val initialized: Boolean = false, val items: List<Download> = emptyList())
-
-data class FeedPreview(val feedUrl: String, val podcast: Podcast, val episodes: List<Episode>)
-
-private data class CachedFeedPreview(val value: FeedPreview, val validatedAtMillis: Long)
-
-interface EpisodeDownloadGateway {
-    val downloads: StateFlow<DownloadSnapshot>
-    val supported: Boolean
-    val cellularDownloadControlSupported: Boolean
-    val cellularDownloadsAllowed: StateFlow<Boolean>
-    fun download(episode: Episode, podcastTitle: String)
-    fun delete(episodeId: EpisodeId)
-    fun setCellularDownloadsAllowed(allowed: Boolean)
-}
 
 private object NoOpDownloadGateway : EpisodeDownloadGateway {
     override val downloads: StateFlow<DownloadSnapshot> = MutableStateFlow(DownloadSnapshot())
@@ -126,21 +81,21 @@ class MollieStore(
     private val previewCacheMutex = Mutex()
     private var lastPlaybackTimestamp = 0L
     private var discoveryValidatedAtMillis: Long? = null
-    private val feedPreviewCache = mutableMapOf<String, CachedFeedPreview>()
+    private val feedPreviewCache: ObjectStorage = InMemoryObjectStorage(MAX_FEED_PREVIEWS, clock)
     private val latestPreviewRequest = mutableMapOf<String, Long>()
     private var previewRequestSequence = 0L
     val state: StateFlow<LibraryState> = mutableState.asStateFlow()
 
     init {
         scope.launch {
-            val needsStarterFeed = database?.let { db -> !restore(db) } ?: true
+            val localDatabase = database
+            if (localDatabase != null) restore(localDatabase)
             scope.launch { collectDownloadSnapshots() }
             scope.launch { downloadGateway.cellularDownloadsAllowed.collect { allowed ->
                 mutableState.update { it.copy(cellularDownloadsAllowed = allowed) }
             } }
             scope.launch { refreshDiscovery(force = false) }
-            if (needsStarterFeed) subscribeFeed(STARTER_FEED_URL)
-            else refreshSubscriptions(force = false)
+            refreshSubscriptions(force = false)
         }
     }
 
@@ -195,12 +150,17 @@ class MollieStore(
         val result = feedClient.fetch(feedUrl, cached?.etag, cached?.lastModified)
         when (result) {
             is FeedRefreshResult.Updated -> {
-                database?.let { persistFeed(it, result) }
-                val podcast = result.feed.podcast.copy(isSubscribed = true, lastRefreshAtMillis = clock())
+                val podcast = result.feed.podcast.copy(
+                    artworkUrl = result.feed.podcast.artworkUrl ?: cachedArtworkFor(normalizedUrl),
+                    isSubscribed = true,
+                    lastRefreshAtMillis = clock(),
+                )
+                val syncedFeed = result.feed.copy(podcast = podcast)
+                database?.let { persistFeed(it, result.copy(feed = syncedFeed)) }
                 mutableState.update { old ->
                     old.copy(
                         podcasts = old.podcasts.filterNot { it.id == podcast.id } + podcast,
-                        episodes = old.episodes.filterNot { oldEpisode -> result.feed.episodes.any { it.id == oldEpisode.id } } + result.feed.episodes,
+                        episodes = old.episodes.filterNot { oldEpisode -> syncedFeed.episodes.any { it.id == oldEpisode.id } } + syncedFeed.episodes,
                         busy = false,
                         message = "Subscribed to ${podcast.title}",
                     )
@@ -228,7 +188,10 @@ class MollieStore(
     suspend fun refreshSubscriptions(force: Boolean = false): Int {
         val now = clock()
         val feeds = state.value.podcasts.filter { podcast ->
-            podcast.isSubscribed && (force || !MetadataCacheKind.EpisodeList.isFresh(podcast.lastRefreshAtMillis, now))
+            podcast.isSubscribed && (
+                force || podcast.artworkUrl.isNullOrBlank() ||
+                    !MetadataCacheKind.EpisodeList.isFresh(podcast.lastRefreshAtMillis, now)
+                )
         }.map { it.feedUrl }
         var updated = 0
         feeds.forEach { if (subscribeFeed(it) is FeedRefreshResult.Updated) updated++ }
@@ -312,17 +275,10 @@ class MollieStore(
     /** Fetch a search result's RSS metadata and episodes without changing subscriptions. */
     suspend fun previewFeed(feedUrl: String, force: Boolean = false) {
         val normalizedUrl = normalizeFeedUrl(feedUrl)
-        val now = clock()
-        val cachedPreview = previewCacheMutex.withLock {
-            feedPreviewCache.remove(normalizedUrl)?.takeIf {
-                MetadataCacheKind.EpisodeDetail.isFresh(it.validatedAtMillis, now)
-            }?.also {
-                feedPreviewCache[normalizedUrl] = it
-            }
-        }
+        val cachedPreview = if (force) null else feedPreviewCache.getCurrent(normalizedUrl, FeedPreview::class)
         if (!force && cachedPreview != null) {
             mutableState.update {
-                it.copy(feedPreview = cachedPreview.value, feedPreviewUrl = feedUrl, feedPreviewLoading = false, feedPreviewError = null)
+                it.copy(feedPreview = cachedPreview, feedPreviewUrl = feedUrl, feedPreviewLoading = false, feedPreviewError = null)
             }
             return
         }
@@ -350,11 +306,9 @@ class MollieStore(
                 val accepted = previewCacheMutex.withLock {
                     if (latestPreviewRequest[normalizedUrl] != requestId) return@withLock false
                     latestPreviewRequest.remove(normalizedUrl)
-                    feedPreviewCache.remove(normalizedUrl)
-                    while (feedPreviewCache.size >= MAX_FEED_PREVIEWS) feedPreviewCache.remove(feedPreviewCache.keys.first())
-                    feedPreviewCache[normalizedUrl] = CachedFeedPreview(preview, clock())
                     true
                 }
+                if (accepted) feedPreviewCache.save(normalizedUrl, preview, TTL(MetadataCacheKind.EpisodeDetail.ttlMillis))
                 if (accepted) mutableState.update {
                     if (it.feedPreviewUrl == feedUrl) it.copy(feedPreview = preview, feedPreviewLoading = false) else it
                 }
@@ -495,6 +449,20 @@ class MollieStore(
 
     fun clearMessage() { mutableState.update { it.copy(message = null) } }
 
+    /** Keeps directory artwork when an RSS publisher omits cover metadata. */
+    private fun cachedArtworkFor(normalizedFeedUrl: String): String? = sequenceOf(
+        state.value.podcasts,
+        state.value.appleSearchResults,
+        state.value.appleCategoryResults,
+        listOfNotNull(state.value.feedPreview?.podcast),
+    ).flatMap { it.asSequence() }
+        .filter { podcast ->
+            normalizeFeedUrl(podcast.feedUrl) == normalizedFeedUrl ||
+                normalizeFeedUrl(podcast.canonicalFeedUrl) == normalizedFeedUrl
+        }
+        .mapNotNull(Podcast::artworkUrl)
+        .firstOrNull()
+
     private suspend fun persistFeed(db: MollieDatabase, result: FeedRefreshResult.Updated) {
         val podcast = result.feed.podcast
         val normalizedTitle = podcast.title.lowercase().trim().replace(Regex("\\s+"), " ")
@@ -546,7 +514,7 @@ class MollieStore(
         db.syncDao().upsertState(state)
     }
 
-    private suspend fun restore(db: MollieDatabase): Boolean {
+    private suspend fun restore(db: MollieDatabase) {
         val subscriptions = db.userDataDao().allSubscriptions().map { it.podcastId }.toSet()
         val enclosures = db.episodeDao().allEnclosures().groupBy { it.episodeId }
         val categoryNames = db.categoryDao().allCategories().associate { it.categoryKey to it.displayName }
@@ -557,7 +525,7 @@ class MollieStore(
             }
             entity.toModel(entity.podcastId in subscriptions, categories)
         }
-        if (podcasts.isEmpty()) return false
+        if (podcasts.isEmpty()) return
         val history = db.userDataDao().allHistory().map { PlaybackHistory(EpisodeId(it.episodeId), it.lastPlayedAt, it.positionMs, it.durationSnapshotMs, it.totalPlayedMs, it.completed) }
         playbackWriteMutex.withLock {
             lastPlaybackTimestamp = maxOf(lastPlaybackTimestamp, history.maxOfOrNull(PlaybackHistory::lastPlayedAtMillis) ?: 0L)
@@ -565,7 +533,6 @@ class MollieStore(
         val positions = history.associate { it.episodeId.value to if (it.completed) 0L else it.positionMillis }
         val restoredEpisodes = db.episodeDao().allEpisodes().map { entity -> entity.toModel(enclosures[entity.episodeId].orEmpty(), positions[entity.episodeId] ?: 0) }
         // The first prototype shipped a non-existent placeholder MP3. Do not expose it as playable media.
-        val hasLegacyPlaceholder = restoredEpisodes.any { episode -> episode.enclosures.any { it.url == LEGACY_PLACEHOLDER_MEDIA_URL } }
         val episodes = restoredEpisodes.filterNot { episode -> episode.enclosures.any { it.url == LEGACY_PLACEHOLDER_MEDIA_URL } }
         val favorites = db.userDataDao().allFavorites().mapTo(mutableSetOf()) { EpisodeId(it.episodeId) }
         val downloads = db.downloadDao().allDownloads().map { Download(EpisodeId(it.episodeId), it.sourceUrl, runCatching { DownloadState.valueOf(it.state) }.getOrDefault(DownloadState.Failed), it.localReference, it.receivedBytes, it.totalBytes, it.failureMessage) }
@@ -579,7 +546,6 @@ class MollieStore(
                 downloadsSupported = downloadGateway.supported,
             )
         }
-        return !hasLegacyPlaceholder
     }
 
     private fun nextPlaybackTimestamp(): Long {

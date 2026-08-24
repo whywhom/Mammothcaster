@@ -6,6 +6,7 @@
     <string name="add_rss_feed">Add RSS feed</string>
     <string name="opml_import_export">OPML import / export</string>
     <string name="audio_playback_unavailable">Audio playback is not available on this platform yet</string>
+    <string name="discovery_sources_unavailable">Some discovery sources are temporarily unavailable</string>
     <string name="loading_popular_podcasts">Loading popular podcasts…</string>
     <string name="popular_podcasts">Popular podcasts</string>
     <string name="recommended_for_you">Recommended for you</string>

@@ -1,5 +1,5 @@
 import SwiftUI
-import MolliecasterShared
+import MolliecasterApp
 
 @main
 struct iOSApp: App {

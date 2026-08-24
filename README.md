@@ -55,8 +55,8 @@ Android Studio's bundled JBR can compile and run the project, but it does not in
 Run the Desktop and Web applications with:
 
 ```bash
-./gradlew :shared:run
-./gradlew :shared:wasmJsBrowserDevelopmentRun
+./gradlew :app:run
+./gradlew :app:wasmJsBrowserDevelopmentRun
 ```
 
 Open `iosApp/iosApp.xcodeproj` for iOS.
@@ -65,7 +65,7 @@ Check the Desktop packaging runtime and create a macOS package with:
 
 ```bash
 ./gradlew :shared:checkRuntime
-./gradlew :shared:packageDmg
+./gradlew :app:packageDmg
 ```
 
 The first packaging build downloads the full JDK once into the Gradle user home; later builds reuse it.
@@ -76,7 +76,7 @@ Home discovery currently fetches the Apple Podcasts chart Top 10 and resolves ev
 
 The Podcast Index trending adapter and ranked-source merge are retained for future use, but `DiscoveryConfig.podcastIndexEnabled` defaults to `false`; disabled builds do not send a Podcast Index request or show a missing-credentials warning. To re-enable it later, set that flag to `true` and use a trusted proxy that injects the required headers, or supply direct development credentials. Set the two-letter Apple storefront with `MOLLIE_APPLE_STOREFRONT` (default `us`).
 
-The future credential plumbing remains in place: Android reads those names as Gradle properties (`-P...`) or environment variables, while desktop and iOS read environment variables. Never put Podcast Index secrets in a Web build; use a trusted same-origin proxy if the source is enabled later.
+The future credential plumbing remains in place: Android reads those names from ignored `local.properties`, Gradle properties (`-P...`), or environment variables; Gradle properties and environment variables take precedence for CI. Desktop and iOS read environment variables. Never put Podcast Index secrets in a Web build; use a trusted same-origin proxy if the source is enabled later. A direct Android API key is embedded in the app package, so it is suitable only for local development—not a production secret.
 
 The source Jetcaster project remains read-only. See [CAPABILITY_MATRIX.md](CAPABILITY_MATRIX.md) for platform-specific behavior and known constraints.
 
@@ -121,9 +121,9 @@ Compose Desktop packages the native installer format supported by the host opera
 
 ```bash
 # Run the command on the matching host platform.
-./gradlew :shared:packageReleaseDmg  # macOS
-./gradlew :shared:packageReleaseMsi  # Windows
-./gradlew :shared:packageReleaseDeb  # Debian/Ubuntu Linux
+./gradlew :app:packageReleaseDmg  # macOS
+./gradlew :app:packageReleaseMsi  # Windows
+./gradlew :app:packageReleaseDeb  # Debian/Ubuntu Linux
 ```
 
 Packages are written below `shared/build/compose/binaries/main-release/`. Code-sign and notarize the macOS package, and sign the Windows installer, with credentials managed outside this repository.
@@ -133,7 +133,7 @@ Packages are written below `shared/build/compose/binaries/main-release/`. Code-s
 Create the optimized Kotlin/Wasm browser distribution with:
 
 ```bash
-./gradlew :shared:wasmJsBrowserDistribution
+./gradlew :app:wasmJsBrowserDistribution
 ```
 
 Deploy the generated static files from `shared/build/dist/wasmJs/productionExecutable/` behind HTTPS. Configure a trusted RSS fetch proxy for feeds without CORS support; never expose Podcast Index credentials in client-side assets.

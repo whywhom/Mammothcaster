@@ -1,6 +1,6 @@
 package mammoth.mollie.caster.ui.format
 
-internal fun formatDuration(millis: Long): String {
+fun formatDuration(millis: Long): String {
     val seconds = millis.coerceAtLeast(0) / 1000
     val hours = seconds / 3600
     val minutes = seconds / 60 % 60
@@ -8,10 +8,10 @@ internal fun formatDuration(millis: Long): String {
     return if (hours > 0) "$hours:${minutes.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}" else "$minutes:${remaining.toString().padStart(2, '0')}"
 }
 
-internal fun formatPlaybackSpeed(speed: Float): String =
+fun formatPlaybackSpeed(speed: Float): String =
     if (speed % 1f == 0f) speed.toInt().toString() else speed.toString()
 
-internal fun formatDate(millis: Long?): String? = millis?.let {
+fun formatDate(millis: Long?): String? = millis?.let {
     var z = it / 86_400_000L + 719_468L
     val era = if (z >= 0) z / 146_097L else (z - 146_096L) / 146_097L
     val dayOfEra = z - era * 146_097L

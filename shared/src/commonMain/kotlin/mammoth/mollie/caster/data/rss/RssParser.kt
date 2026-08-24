@@ -26,8 +26,7 @@ class RssParser {
         val website = channel.directChildren("link").firstOrNull { it.attr("rel").let { rel -> rel.isBlank() || rel == "alternate" } }
             ?.let { if (isAtom) it.attr("href") else it.text() }
             ?.takeIf(String::isNotBlank)
-        val artwork = channel.firstChildNamed("itunes:image")?.attr("href").takeIf { !it.isNullOrBlank() }
-            ?: channel.firstChildNamed("image")?.childText("url")?.takeIf(String::isNotBlank)
+        val artwork = channel.artworkUrl()
         val rawCategories = channel.directChildren("category", "itunes:category").mapNotNull {
             (it.attr("text").ifBlank { it.text() }).takeIf(String::isNotBlank)
         }
@@ -67,7 +66,7 @@ class RssParser {
                     author = item.childText("itunes:author", "author"),
                     publishedAtMillis = date,
                     durationMillis = parseDurationMillis(item.childText("itunes:duration")),
-                    artworkUrl = item.firstChildNamed("itunes:image")?.attr("href").takeIf { !it.isNullOrBlank() },
+                    artworkUrl = item.artworkUrl(),
                     seasonNumber = item.childText("itunes:season").toIntOrNull(),
                     episodeNumber = item.childText("itunes:episode").toIntOrNull(),
                     episodeType = item.childText("itunes:episodeType").takeIf(String::isNotBlank),
@@ -86,7 +85,7 @@ class RssParser {
                 title = title,
                 author = author,
                 description = plainText(description),
-                artworkUrl = artwork,
+                artworkUrl = artwork ?: episodes.firstNotNullOfOrNull(Episode::artworkUrl),
                 language = channel.childText("language").takeIf(String::isNotBlank),
                 copyright = channel.childText("copyright").takeIf(String::isNotBlank),
                 isExplicit = channel.childText("itunes:explicit").lowercase() in setOf("yes", "true", "explicit"),
@@ -115,6 +114,31 @@ private fun Element.firstChildNamed(name: String): Element? = directChildren(nam
 private fun Element.childText(vararg names: String): String = names.firstNotNullOfOrNull { name ->
     firstChildNamed(name)?.let { child -> child.text().ifBlank { child.html() } }?.takeIf(String::isNotBlank)
 }.orEmpty().trim()
+
+/** Supports common RSS, iTunes, Atom, and Media RSS cover declarations. */
+private fun Element.artworkUrl(): String? = listOfNotNull(
+    firstChildNamed("itunes:image")?.attr("href"),
+    firstChildNamed("itunes:image")?.attr("url"),
+    firstChildNamed("image")?.attr("href"),
+    firstChildNamed("image")?.childText("url"),
+    firstChildNamed("media:thumbnail")?.attr("url"),
+    firstChildNamed("media:content")
+        ?.takeIf { it.attr("medium").equals("image", ignoreCase = true) || it.attr("type").startsWith("image/", ignoreCase = true) }
+        ?.attr("url"),
+    firstChildNamed("logo")?.text(),
+    firstChildNamed("icon")?.text(),
+).firstNotNullOfOrNull(::httpsArtworkUrl)
+
+/** Android blocks clear-text images; protocol-relative values should also resolve securely. */
+private fun httpsArtworkUrl(raw: String): String? {
+    val url = raw.trim()
+    return when {
+        url.startsWith("https://", ignoreCase = true) -> url
+        url.startsWith("http://", ignoreCase = true) -> "https" + url.drop(4)
+        url.startsWith("//") -> "https:$url"
+        else -> null
+    }
+}
 
 private fun plainText(html: String): String = if (html.isBlank()) "" else Ksoup.parse(html).text().trim()
 
