@@ -25,7 +25,7 @@ fun main() {
     )
     val player = DesktopPodcastPlayer(downloads)
     application {
-        Window(onCloseRequest = { player.close(); downloads.close(); exitApplication() }, title = "Molliecaster") {
+        Window(onCloseRequest = { player.close(); downloads.close(); exitApplication() }, title = "悦播客") {
             MolliecasterApp(store = store, player = player)
         }
     }

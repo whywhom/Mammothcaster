@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -51,6 +51,8 @@ import mammoth.mollie.caster.ui.components.PodcastArtwork
 import mammoth.mollie.caster.ui.components.SectionTitle
 import mammoth.mollie.caster.ui.format.formatDate
 import mammoth.mollie.caster.ui.format.formatDuration
+import mammoth.mollie.caster.ui.localization.localizedCategoryName
+import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
 import molliecaster.shared.generated.resources.browse_categories
@@ -60,7 +62,6 @@ import molliecaster.shared.generated.resources.loading_popular_podcasts
 import molliecaster.shared.generated.resources.popular_podcasts
 import molliecaster.shared.generated.resources.recommended_for_you
 import molliecaster.shared.generated.resources.todays_resonance
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun HomeScreen(
@@ -158,14 +159,14 @@ private fun PopulatedLibraryHome(
                             AetherFilterChip(
                                 selected = selectedCategory == category.key,
                                 onClick = { selectedCategory = category.key },
-                                label = category.displayName,
+                                label = localizedCategoryName(category),
                             )
                         }
                     }
                     selectedCategory?.let { key ->
                         categories.firstOrNull { it.key == key }?.let { category ->
                             PodcastShelf(
-                                category.displayName,
+                                localizedCategoryName(category),
                                 subscriptions.filter { podcast -> podcast.categories.any { it.key == key } },
                                 onPodcast,
                             )
@@ -213,7 +214,7 @@ private fun PopularPodcastSearch(
                 Text("Search podcasts", style = MaterialTheme.typography.titleMedium)
                 Text("Find a show from Apple Podcasts", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

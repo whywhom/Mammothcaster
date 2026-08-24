@@ -28,7 +28,7 @@ import coil3.compose.AsyncImage
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
 import molliecaster.shared.generated.resources.cover
-import org.jetbrains.compose.resources.stringResource
+import mammoth.mollie.caster.ui.localization.stringResource
 
 @Composable
 fun PodcastArtwork(url: String?, title: String, size: Int) {

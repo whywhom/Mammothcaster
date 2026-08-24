@@ -26,6 +26,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FastForward
@@ -36,10 +38,8 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -78,12 +78,12 @@ import mammoth.mollie.caster.playback.PreviewPodcastPlayer
 import mammoth.mollie.caster.ui.components.PodcastArtwork
 import mammoth.mollie.caster.ui.format.formatDuration
 import mammoth.mollie.caster.ui.format.formatPlaybackSpeed
+import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
 import molliecaster.shared.generated.resources.now_playing
 import molliecaster.shared.generated.resources.pause
 import molliecaster.shared.generated.resources.play
-import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,11 +123,12 @@ fun PlayerScreen(
         containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AetherTheme.colors.glassStrong,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    scrolledContainerColor = Color.Unspecified,
                     navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -351,7 +352,7 @@ fun PlayerScreen(
                         }
                     }
                     PlayerUtilityControl(label = "Chapters", enabled = false, onClick = {}) { color ->
-                        Icon(Icons.Default.ViewList, "Chapters unavailable", tint = color)
+                        Icon(Icons.AutoMirrored.Filled.ViewList, "Chapters unavailable", tint = color)
                     }
                     PlayerUtilityControl(label = "Share", enabled = false, onClick = {}) { color ->
                         Icon(Icons.Default.Share, "Sharing unavailable", tint = color)
@@ -361,7 +362,7 @@ fun PlayerScreen(
                 Spacer(Modifier.height(32.dp))
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     IconButton(enabled = false, onClick = {}) { Icon(Icons.Default.Cast, "Audio routing unavailable") }
-                    IconButton(enabled = false, onClick = {}) { Icon(Icons.Default.QueueMusic, "Queue unavailable") }
+                    IconButton(enabled = false, onClick = {}) { Icon(Icons.AutoMirrored.Filled.QueueMusic, "Queue unavailable") }
                 }
                 Spacer(Modifier.height(12.dp))
             }

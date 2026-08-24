@@ -54,7 +54,8 @@ import mammoth.mollie.caster.ui.components.SectionTitle
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import mammoth.mollie.caster.util.normalizeFeedUrl
 import molliecaster.shared.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
+import mammoth.mollie.caster.ui.localization.stringResource
+import mammoth.mollie.caster.ui.localization.localizedCategoryName
 
 @Composable
 fun SearchScreen(
@@ -77,7 +78,6 @@ fun SearchScreen(
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(Res.string.find_next_frequency), style = MaterialTheme.typography.headlineLarge)
                 Text(stringResource(Res.string.search_description), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(
                     value = query,
@@ -116,7 +116,7 @@ fun SearchScreen(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SectionTitle(stringResource(Res.string.browse_all_categories))
                 Text(
-                    "Apple Podcasts top-level categories, plus AI",
+                    stringResource(Res.string.category_description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -222,7 +222,7 @@ fun CategorySearchResultsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            LibraryDetailHeader(category.displayName, stringResource(Res.string.back_to_search), onBack)
+            LibraryDetailHeader(localizedCategoryName(category), stringResource(Res.string.back_to_search), onBack)
             Text(
                 stringResource(Res.string.category_results),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -312,7 +312,7 @@ fun CategoryGrid(
                                 contentAlignment = Alignment.CenterStart,
                             ) {
                                 Text(
-                                    category.displayName,
+                                    localizedCategoryName(category),
                                     style = MaterialTheme.typography.titleMedium,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,

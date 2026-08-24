@@ -1,14 +1,14 @@
 package mammoth.mollie.caster
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,8 +26,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Button
@@ -54,14 +54,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import mammoth.mollie.caster.data.OpmlImportReport
+import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.opml.rememberOpmlFileTransfer
 import mammoth.mollie.caster.ui.theme.AetherTheme
+import molliecaster.shared.generated.resources.Res
+import molliecaster.shared.generated.resources.data_management
+import molliecaster.shared.generated.resources.export_library
+import molliecaster.shared.generated.resources.export_opml
+import molliecaster.shared.generated.resources.export_opml_description
+import molliecaster.shared.generated.resources.import_from_file
+import molliecaster.shared.generated.resources.import_subscriptions_via_opml
+import molliecaster.shared.generated.resources.importing_subscriptions
+import molliecaster.shared.generated.resources.library_sync
+import molliecaster.shared.generated.resources.library_sync_description
+import molliecaster.shared.generated.resources.settings
+import molliecaster.shared.generated.resources.working
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,13 +133,19 @@ fun LibrarySyncScreen(
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().background(AetherTheme.colors.ambientGradient)) {
             CenterAlignedTopAppBar(
-                title = { Text("Settings", style = MaterialTheme.typography.headlineSmall) },
+                title = { Text(stringResource(Res.string.settings), style = MaterialTheme.typography.headlineSmall) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                    scrolledContainerColor = Color.Unspecified,
+                    navigationIconContentColor = Color.Unspecified,
+                    titleContentColor = Color.Unspecified,
+                    actionIconContentColor = Color.Unspecified
+                ),
             )
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -153,9 +173,9 @@ fun LibrarySyncScreen(
                             )
                         }
                     }
-                    Text("Library Sync", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(Res.string.library_sync), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
                     Text(
-                        "Manage your podcast subscriptions. Move your library safely between podcast apps.",
+                        stringResource(Res.string.library_sync_description),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -165,7 +185,7 @@ fun LibrarySyncScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "DATA MANAGEMENT",
+                        stringResource(Res.string.data_management).uppercase(),
                         modifier = Modifier.padding(start = 16.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.outline,
@@ -180,7 +200,7 @@ fun LibrarySyncScreen(
                         ) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
-                            Text(if (importing) "Importing subscriptions…" else "Working…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(if (importing) Res.string.importing_subscriptions else Res.string.working), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -213,10 +233,10 @@ private fun SyncImportCard(enabled: Boolean, onClick: () -> Unit) {
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Import from File", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                Text("Import subscriptions via OPML", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.import_from_file), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(stringResource(Res.string.import_subscriptions_via_opml), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outlineVariant)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
@@ -234,9 +254,9 @@ private fun SyncExportCard(enabled: Boolean, onClick: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Export OPML", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
+                Text(stringResource(Res.string.export_opml), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
                 Text(
-                    "Take your library with you. Export your current subscriptions as an OPML file for safekeeping or transfer.",
+                    stringResource(Res.string.export_opml_description),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -252,7 +272,7 @@ private fun SyncExportCard(enabled: Boolean, onClick: () -> Unit) {
             ) {
                 Icon(Icons.Default.Upload, null)
                 Spacer(Modifier.width(10.dp))
-                Text("Export Library", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(Res.string.export_library), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

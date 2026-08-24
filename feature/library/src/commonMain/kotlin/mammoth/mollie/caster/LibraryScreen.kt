@@ -16,13 +16,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,15 +41,31 @@ import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.ui.components.EmptyHint
 import mammoth.mollie.caster.ui.components.PodcastArtwork
 import mammoth.mollie.caster.ui.components.SectionTitle
+import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
-import molliecaster.shared.generated.resources.library
+import molliecaster.shared.generated.resources.back_to_library
+import molliecaster.shared.generated.resources.channels
+import molliecaster.shared.generated.resources.downloaded
+import molliecaster.shared.generated.resources.latest_episodes
+import molliecaster.shared.generated.resources.recently_played
 import molliecaster.shared.generated.resources.recently_updated
-import org.jetbrains.compose.resources.stringResource
+import molliecaster.shared.generated.resources.saved
+import molliecaster.shared.generated.resources.shows
 
 
-enum class LibrarySection(val title: String) {
-    Shows("Shows"), Channels("Channels"), Saved("Saved"), Downloaded("Downloaded"), LatestEpisodes("Latest Episodes"), RecentlyPlayed("Recently Played"),
+enum class LibrarySection {
+    Shows, Channels, Saved, Downloaded, LatestEpisodes, RecentlyPlayed,
+}
+
+@Composable
+private fun LibrarySection.title(): String = when (this) {
+    LibrarySection.Shows -> stringResource(Res.string.shows)
+    LibrarySection.Channels -> stringResource(Res.string.channels)
+    LibrarySection.Saved -> stringResource(Res.string.saved)
+    LibrarySection.Downloaded -> stringResource(Res.string.downloaded)
+    LibrarySection.LatestEpisodes -> stringResource(Res.string.latest_episodes)
+    LibrarySection.RecentlyPlayed -> stringResource(Res.string.recently_played)
 }
 @Composable
 fun LibraryScreen(
@@ -102,13 +118,10 @@ fun LibraryOverview(
         Triple(LibrarySection.Channels, Icons.Default.Cast, null),
         Triple(LibrarySection.Saved, Icons.Default.Bookmark, null),
         Triple(LibrarySection.Downloaded, Icons.Default.CloudDownload, null),
-        Triple(LibrarySection.LatestEpisodes, Icons.Default.QueueMusic, null),
+        Triple(LibrarySection.LatestEpisodes, Icons.AutoMirrored.Filled.QueueMusic, null),
         Triple(LibrarySection.RecentlyPlayed, Icons.Default.History, state.history.size.takeIf { it > 0 }),
     )
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item {
-            Text(stringResource(Res.string.library), style = MaterialTheme.typography.headlineLarge)
-        }
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -119,7 +132,7 @@ fun LibraryOverview(
                 Column {
                     menuItems.forEachIndexed { index, (section, icon, count) ->
                         LibraryMenuRow(
-                            title = section.title,
+                            title = section.title(),
                             icon = icon,
                             count = count,
                             onClick = { onSection(section) },
@@ -158,7 +171,7 @@ fun LibraryMenuRow(
             Text(it.toString(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(6.dp))
         }
-        Icon(Icons.Default.KeyboardArrowRight, "Open $title", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Open $title", tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -191,7 +204,7 @@ fun LibrarySectionDetails(
         .sortedBy { it.first.lowercase() }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { LibraryDetailHeader(section.title, "Back to Library", onBack) }
+        item { LibraryDetailHeader(section.title(), stringResource(Res.string.back_to_library), onBack) }
         when (section) {
             LibrarySection.Shows -> {
                 if (subscriptions.isEmpty()) item { EmptyHint("Your subscribed podcasts will appear here.") }
@@ -243,7 +256,7 @@ fun LibraryChannelRow(author: String, podcasts: List<Podcast>, onClick: () -> Un
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Icon(Icons.Default.KeyboardArrowRight, "Open $author", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Open $author", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

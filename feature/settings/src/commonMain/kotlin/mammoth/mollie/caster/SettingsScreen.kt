@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -33,22 +33,41 @@ import androidx.compose.ui.unit.dp
 import mammoth.mollie.caster.playback.PodcastPlayer
 import mammoth.mollie.caster.playback.PreviewPodcastPlayer
 import mammoth.mollie.caster.ui.format.formatPlaybackSpeed
+import mammoth.mollie.caster.ui.localization.AppLanguage
+import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
+import molliecaster.shared.generated.resources.active
 import molliecaster.shared.generated.resources.app_name
 import molliecaster.shared.generated.resources.appearance
+import molliecaster.shared.generated.resources.chinese
 import molliecaster.shared.generated.resources.dark_theme
 import molliecaster.shared.generated.resources.download_over_mobile_data
 import molliecaster.shared.generated.resources.downloads
+import molliecaster.shared.generated.resources.downloads_mobile_and_wifi
+import molliecaster.shared.generated.resources.downloads_unavailable
+import molliecaster.shared.generated.resources.downloads_wifi_only
+import molliecaster.shared.generated.resources.english
+import molliecaster.shared.generated.resources.language
 import molliecaster.shared.generated.resources.library_and_data
+import molliecaster.shared.generated.resources.library_sync
+import molliecaster.shared.generated.resources.library_sync_summary
 import molliecaster.shared.generated.resources.manage_downloads
+import molliecaster.shared.generated.resources.minutes
+import molliecaster.shared.generated.resources.off
 import molliecaster.shared.generated.resources.playback
 import molliecaster.shared.generated.resources.playback_speed
 import molliecaster.shared.generated.resources.refresh_subscriptions
+import molliecaster.shared.generated.resources.refresh_subscriptions_summary
 import molliecaster.shared.generated.resources.refreshing_subscriptions
-import molliecaster.shared.generated.resources.settings
+import molliecaster.shared.generated.resources.settings_description
+import molliecaster.shared.generated.resources.skip_interval
+import molliecaster.shared.generated.resources.skip_interval_summary
 import molliecaster.shared.generated.resources.sleep_timer
-import org.jetbrains.compose.resources.stringResource
+import molliecaster.shared.generated.resources.turn_off_sleep_timer
+import molliecaster.shared.generated.resources.using_dark_theme
+import molliecaster.shared.generated.resources.using_light_theme
+import molliecaster.shared.generated.resources.view_downloaded_episodes
 
 @Composable
 fun SettingsScreen(
@@ -59,7 +78,9 @@ fun SettingsScreen(
     cellularDownloadControlSupported: Boolean,
     cellularDownloadsAllowed: Boolean,
     refreshing: Boolean,
+    language: AppLanguage,
     onToggleTheme: () -> Unit,
+    onLanguageChange: (AppLanguage) -> Unit,
     onRefresh: () -> Unit,
     onManageDownloads: () -> Unit,
     onCellularDownloadsAllowedChange: (Boolean) -> Unit,
@@ -67,6 +88,7 @@ fun SettingsScreen(
 ) {
     var speedExpanded by remember { mutableStateOf(false) }
     var sleepExpanded by remember { mutableStateOf(false) }
+    var languageExpanded by remember { mutableStateOf(false) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
@@ -74,9 +96,8 @@ fun SettingsScreen(
     ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(Res.string.settings), style = MaterialTheme.typography.headlineLarge)
                     Text(
-                        "Control appearance, listening, downloads, and your library data.",
+                        stringResource(Res.string.settings_description),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -85,10 +106,22 @@ fun SettingsScreen(
                 SettingsGroup(stringResource(Res.string.appearance)) {
                     SettingsSwitchRow(
                         title = stringResource(Res.string.dark_theme),
-                        summary = if (darkTheme) "Using the dark Aether theme" else "Using the light Aether theme",
+                        summary = stringResource(if (darkTheme) Res.string.using_dark_theme else Res.string.using_light_theme),
                         checked = darkTheme,
                         onCheckedChange = { onToggleTheme() },
                     )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Box {
+                        SettingsActionRow(
+                            title = stringResource(Res.string.language),
+                            summary = stringResource(if (language == AppLanguage.English) Res.string.english else Res.string.chinese),
+                            onClick = { languageExpanded = true },
+                        )
+                        DropdownMenu(expanded = languageExpanded, onDismissRequest = { languageExpanded = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(Res.string.english)) }, onClick = { onLanguageChange(AppLanguage.English); languageExpanded = false })
+                            DropdownMenuItem(text = { Text(stringResource(Res.string.chinese)) }, onClick = { onLanguageChange(AppLanguage.Chinese); languageExpanded = false })
+                        }
+                    }
                 }
             }
             item {
@@ -115,13 +148,13 @@ fun SettingsScreen(
                     Box {
                         SettingsActionRow(
                             title = stringResource(Res.string.sleep_timer),
-                            summary = playerState.sleepTimerEndsAtMillis?.let { "Active" } ?: "Off",
+                            summary = stringResource(if (playerState.sleepTimerEndsAtMillis != null) Res.string.active else Res.string.off),
                             onClick = { sleepExpanded = true },
                         )
                         DropdownMenu(expanded = sleepExpanded, onDismissRequest = { sleepExpanded = false }) {
                             listOf(15, 30, 60).forEach { minutes ->
                                 DropdownMenuItem(
-                                    text = { Text("$minutes minutes") },
+                                    text = { Text(stringResource(Res.string.minutes, minutes)) },
                                     onClick = {
                                         player.setSleepTimer(minutes)
                                         sleepExpanded = false
@@ -130,7 +163,7 @@ fun SettingsScreen(
                             }
                             if (playerState.sleepTimerEndsAtMillis != null) {
                                 DropdownMenuItem(
-                                    text = { Text("Turn off sleep timer") },
+                                    text = { Text(stringResource(Res.string.turn_off_sleep_timer)) },
                                     onClick = {
                                         player.setSleepTimer(null)
                                         sleepExpanded = false
@@ -141,8 +174,8 @@ fun SettingsScreen(
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     SettingsActionRow(
-                        title = "Skip interval",
-                        summary = "15 seconds backward and forward",
+                        title = stringResource(Res.string.skip_interval),
+                        summary = stringResource(Res.string.skip_interval_summary),
                         enabled = false,
                         onClick = {},
                     )
@@ -153,7 +186,7 @@ fun SettingsScreen(
                     if (cellularDownloadControlSupported) {
                         SettingsSwitchRow(
                             title = stringResource(Res.string.download_over_mobile_data),
-                            summary = if (cellularDownloadsAllowed) "Downloads can use Wi-Fi or mobile data" else "Downloads use Wi-Fi only",
+                            summary = stringResource(if (cellularDownloadsAllowed) Res.string.downloads_mobile_and_wifi else Res.string.downloads_wifi_only),
                             checked = cellularDownloadsAllowed,
                             onCheckedChange = onCellularDownloadsAllowedChange,
                         )
@@ -161,7 +194,7 @@ fun SettingsScreen(
                     }
                     SettingsActionRow(
                         title = stringResource(Res.string.manage_downloads),
-                        summary = if (downloadsSupported) "View downloaded episodes" else "Downloads are not available on this platform",
+                        summary = stringResource(if (downloadsSupported) Res.string.view_downloaded_episodes else Res.string.downloads_unavailable),
                         enabled = downloadsSupported,
                         onClick = onManageDownloads,
                     )
@@ -171,14 +204,14 @@ fun SettingsScreen(
                 SettingsGroup(stringResource(Res.string.library_and_data)) {
                     SettingsActionRow(
                         title = if (refreshing) stringResource(Res.string.refreshing_subscriptions) else stringResource(Res.string.refresh_subscriptions),
-                        summary = "Check your followed podcasts for new episodes",
+                        summary = stringResource(Res.string.refresh_subscriptions_summary),
                         enabled = !refreshing,
                         onClick = onRefresh,
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     SettingsActionRow(
-                        title = "Library sync",
-                        summary = "Move subscriptions between podcast apps",
+                        title = stringResource(Res.string.library_sync),
+                        summary = stringResource(Res.string.library_sync_summary),
                         onClick = onOpml,
                     )
                 }
@@ -217,7 +250,7 @@ fun SettingsActionRow(title: String, summary: String, enabled: Boolean = true, o
             Text(title, style = MaterialTheme.typography.titleMedium, color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
             Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

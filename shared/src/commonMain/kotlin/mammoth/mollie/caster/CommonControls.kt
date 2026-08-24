@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import molliecaster.shared.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
+import mammoth.mollie.caster.ui.localization.stringResource
 
 @Composable
 fun ThemeToggle(darkTheme: Boolean, onToggle: () -> Unit) {

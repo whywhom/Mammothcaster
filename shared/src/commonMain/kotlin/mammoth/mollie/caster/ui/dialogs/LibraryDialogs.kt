@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import molliecaster.shared.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
+import mammoth.mollie.caster.ui.localization.stringResource
 
 @Composable
 fun AddFeedDialog(busy: Boolean, onDismiss: () -> Unit, onSubscribe: (String) -> Unit) {

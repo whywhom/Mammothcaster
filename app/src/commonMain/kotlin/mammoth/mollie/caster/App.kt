@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,18 +53,23 @@ import mammoth.mollie.caster.model.PodcastCategory
 import mammoth.mollie.caster.playback.PodcastPlayer
 import mammoth.mollie.caster.playback.PreviewPodcastPlayer
 import mammoth.mollie.caster.ui.dialogs.AddFeedDialog
+import mammoth.mollie.caster.ui.localization.LocalAppLanguage
+import mammoth.mollie.caster.ui.localization.rememberAppLanguagePreference
+import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import mammoth.mollie.caster.ui.theme.MolliecasterTheme
 import molliecaster.shared.generated.resources.Res
 import molliecaster.shared.generated.resources.add_rss_feed
 import molliecaster.shared.generated.resources.app_name
-import molliecaster.shared.generated.resources.app_tagline
 import molliecaster.shared.generated.resources.audio_playback_unavailable
 import molliecaster.shared.generated.resources.discovery_sources_unavailable
+import molliecaster.shared.generated.resources.home
+import molliecaster.shared.generated.resources.library
 import molliecaster.shared.generated.resources.more_actions
 import molliecaster.shared.generated.resources.opml_import_export
 import molliecaster.shared.generated.resources.refresh
-import org.jetbrains.compose.resources.stringResource
+import molliecaster.shared.generated.resources.search
+import molliecaster.shared.generated.resources.settings
 
 private enum class Destination { Home, Search, Library, Settings }
 
@@ -90,6 +96,8 @@ fun MolliecasterApp(
     var addFeed by remember { mutableStateOf(false) }
     var librarySync by remember { mutableStateOf(false) }
     var settingsExpanded by remember { mutableStateOf(false) }
+    val languagePreference = rememberAppLanguagePreference()
+    var language by remember(languagePreference) { mutableStateOf(languagePreference.initialLanguage) }
     var initialHomeEntryHandled by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -127,6 +135,7 @@ fun MolliecasterApp(
         }
     }
 
+    CompositionLocalProvider(LocalAppLanguage provides language) {
     MolliecasterTheme(darkTheme = darkTheme) {
         Box(Modifier.fillMaxSize().background(AetherTheme.colors.ambientGradient)) {
             Surface(
@@ -184,11 +193,20 @@ fun MolliecasterApp(
                     snackbarHost = { SnackbarHost(snackbar) },
                     topBar = {
                         CenterAlignedTopAppBar(
-                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                                scrolledContainerColor = Color.Unspecified,
+                                navigationIconContentColor = Color.Unspecified,
+                                titleContentColor = Color.Unspecified,
+                                actionIconContentColor = Color.Unspecified
+                            ),
                             title = {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineSmall)
-                                    Text(stringResource(Res.string.app_tagline), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                                if (destination == Destination.Home) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineSmall)
+                                    }
+                                } else {
+                                    Text(destinationLabel(destination), style = MaterialTheme.typography.headlineSmall)
                                 }
                             },
                             actions = {
@@ -252,8 +270,8 @@ fun MolliecasterApp(
                                             Destination.Search -> Icons.Default.Search
                                             Destination.Library -> Icons.Default.LibraryMusic
                                             Destination.Settings -> Icons.Default.Settings
-                                        }, item.name) },
-                                        label = { Text(item.name) },
+                                        }, destinationLabel(item)) },
+                                        label = { Text(destinationLabel(item)) },
                                     )
                                 }
                             }
@@ -359,7 +377,12 @@ fun MolliecasterApp(
                                 cellularDownloadControlSupported = library.cellularDownloadControlSupported,
                                 cellularDownloadsAllowed = library.cellularDownloadsAllowed,
                                 refreshing = library.busy,
+                                language = language,
                                 onToggleTheme = { darkTheme = !darkTheme },
+                                onLanguageChange = {
+                                    language = it
+                                    languagePreference.save(it)
+                                },
                                 onRefresh = {
                                     scope.launch {
                                         store.refreshSubscriptions(force = true)
@@ -384,4 +407,13 @@ fun MolliecasterApp(
             }
         }
     }
+    }
+}
+
+@Composable
+private fun destinationLabel(destination: Destination): String = when (destination) {
+    Destination.Home -> stringResource(Res.string.home)
+    Destination.Search -> stringResource(Res.string.search)
+    Destination.Library -> stringResource(Res.string.library)
+    Destination.Settings -> stringResource(Res.string.settings)
 }

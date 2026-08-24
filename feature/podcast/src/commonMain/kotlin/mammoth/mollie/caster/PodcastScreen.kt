@@ -84,7 +84,7 @@ import molliecaster.shared.generated.resources.subscribe
 import molliecaster.shared.generated.resources.subscribed
 import molliecaster.shared.generated.resources.sync_feed
 import molliecaster.shared.generated.resources.syncing
-import org.jetbrains.compose.resources.stringResource
+import mammoth.mollie.caster.ui.localization.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,7 +112,13 @@ fun PodcastDetails(
         containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Unspecified,
+                    navigationIconContentColor = Color.Unspecified,
+                    titleContentColor = Color.Unspecified,
+                    actionIconContentColor = Color.Unspecified
+                ),
                 title = { Text(displayedPodcast.title, maxLines = 1) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 actions = { ThemeToggle(darkTheme, onToggleTheme) },
@@ -220,7 +226,13 @@ fun EpisodeDetails(
         containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Unspecified,
+                    navigationIconContentColor = Color.Unspecified,
+                    titleContentColor = Color.Unspecified,
+                    actionIconContentColor = Color.Unspecified
+                ),
                 title = { Text(stringResource(Res.string.episode), maxLines = 1) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back)) } },
                 actions = { ThemeToggle(darkTheme, onToggleTheme) },
