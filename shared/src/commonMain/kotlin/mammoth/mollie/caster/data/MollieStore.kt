@@ -28,6 +28,8 @@ import mammoth.mollie.caster.data.database.FavoriteEntity
 import mammoth.mollie.caster.data.database.FeedAliasEntity
 import mammoth.mollie.caster.data.database.FeedSyncStateEntity
 import mammoth.mollie.caster.data.database.MollieDatabase
+import mammoth.mollie.caster.data.database.LocalPlaylistEntity
+import mammoth.mollie.caster.data.database.LocalPlaylistItemEntity
 import mammoth.mollie.caster.data.database.PodcastCategoryEntity
 import mammoth.mollie.caster.data.database.PodcastEntity
 import mammoth.mollie.caster.data.database.SubscriptionEntity
@@ -42,6 +44,8 @@ import mammoth.mollie.caster.model.DownloadState
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.model.EpisodeId
 import mammoth.mollie.caster.model.PlaybackHistory
+import mammoth.mollie.caster.model.LocalAudioFile
+import mammoth.mollie.caster.model.LocalPlaylist
 import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategory
 import mammoth.mollie.caster.model.PodcastId
@@ -387,6 +391,9 @@ class MollieStore(
     fun setCellularDownloadsAllowed(allowed: Boolean) = downloadGateway.setCellularDownloadsAllowed(allowed)
 
     fun recordPlayback(episode: Episode, positionMillis: Long, durationMillis: Long) {
+        // Local-playlist tracks are file references, not RSS episode rows. Keep their current-session
+        // history visible, but never insert them into playback_history's episode foreign key.
+        val hasPersistedEpisode = state.value.episodes.any { it.id == episode.id }
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             playbackWriteMutex.withLock {
                 val now = nextPlaybackTimestamp()
@@ -404,16 +411,24 @@ class MollieStore(
                     value.copy(history = listOf(record) + value.history.filterNot { it.episodeId == episode.id })
                 }
                 val record = persistedRecord ?: return@withLock
-                database?.userDataDao()?.recordPlayback(
-                    episodeId = episode.id.value,
-                    lastPlayedAt = now,
-                    positionMs = record.positionMillis,
-                    durationMs = durationMillis.takeIf { it > 0 },
-                    totalPlayedMs = record.totalPlayedMillis,
-                    completed = record.completed,
-                    completedAt = now.takeIf { record.completed },
-                    updatedAt = now,
-                )
+                if (hasPersistedEpisode) {
+                    runCatching {
+                        database?.userDataDao()?.recordPlayback(
+                            episodeId = episode.id.value,
+                            lastPlayedAt = now,
+                            positionMs = record.positionMillis,
+                            durationMs = durationMillis.takeIf { it > 0 },
+                            totalPlayedMs = record.totalPlayedMillis,
+                            completed = record.completed,
+                            completedAt = now.takeIf { record.completed },
+                            updatedAt = now,
+                        )
+                    }.onFailure {
+                        mutableState.update { current ->
+                            current.copy(message = "Could not save playback progress")
+                        }
+                    }
+                }
             }
         }
     }
@@ -423,6 +438,75 @@ class MollieStore(
         positionMillis = episode.playbackPositionMillis,
         durationMillis = episode.durationMillis ?: 0,
     )
+
+    /** Stores selected-file references; platforms report playback errors if a file is later moved or revoked. */
+    fun addLocalPlaylist(playlist: LocalPlaylist) {
+        mutableState.update { it.copy(localPlaylists = it.localPlaylists + playlist) }
+        database?.let { db -> scope.launch {
+            runCatching {
+                db.localPlaylistDao().add(
+                    LocalPlaylistEntity(playlist.id, playlist.name, clock()),
+                    playlist.files.mapIndexed { position, file ->
+                        LocalPlaylistItemEntity(playlist.id, position, file.source, file.displayName, file.mimeType)
+                    },
+                )
+            }.onFailure { error ->
+                mutableState.update { current ->
+                    current.copy(
+                        localPlaylists = current.localPlaylists.filterNot { it.id == playlist.id },
+                        message = error.message ?: "Could not save local playlist",
+                    )
+                }
+            }
+        } }
+    }
+
+    fun renameLocalPlaylist(playlistId: String, name: String) = updateLocalPlaylist(playlistId) { it.copy(name = name) }
+
+    fun addLocalPlaylistFiles(playlistId: String, files: List<LocalAudioFile>) =
+        updateLocalPlaylist(playlistId) { it.copy(files = it.files + files) }
+
+    fun removeLocalPlaylistFile(playlistId: String, index: Int) = updateLocalPlaylist(playlistId) { playlist ->
+        playlist.copy(files = playlist.files.filterIndexed { position, _ -> position != index })
+    }
+
+    fun deleteLocalPlaylist(playlistId: String) {
+        val original = state.value.localPlaylists.firstOrNull { it.id == playlistId } ?: return
+        mutableState.update { it.copy(localPlaylists = it.localPlaylists.filterNot { playlist -> playlist.id == playlistId }) }
+        database?.let { db -> scope.launch {
+            runCatching { db.localPlaylistDao().delete(playlistId) }.onFailure { error ->
+                mutableState.update { current ->
+                    current.copy(localPlaylists = current.localPlaylists + original, message = error.message ?: "Could not delete local playlist")
+                }
+            }
+        } }
+    }
+
+    private fun updateLocalPlaylist(playlistId: String, transform: (LocalPlaylist) -> LocalPlaylist) {
+        val original = state.value.localPlaylists.firstOrNull { it.id == playlistId } ?: return
+        val updated = transform(original)
+        mutableState.update { current ->
+            current.copy(localPlaylists = current.localPlaylists.map { if (it.id == playlistId) updated else it })
+        }
+        database?.let { db -> scope.launch {
+            runCatching {
+                db.localPlaylistDao().replace(
+                    playlistId = updated.id,
+                    name = updated.name,
+                    items = updated.files.mapIndexed { position, file ->
+                        LocalPlaylistItemEntity(updated.id, position, file.source, file.displayName, file.mimeType)
+                    },
+                )
+            }.onFailure { error ->
+                mutableState.update { current ->
+                    current.copy(
+                        localPlaylists = current.localPlaylists.map { if (it.id == playlistId) original else it },
+                        message = error.message ?: "Could not update local playlist",
+                    )
+                }
+            }
+        } }
+    }
 
     suspend fun importOpml(document: String): OpmlImportReport {
         val parsed = runCatching { OpmlCodec.parse(document) }.getOrElse {
@@ -515,8 +599,17 @@ class MollieStore(
     }
 
     private suspend fun restore(db: MollieDatabase) {
+        val localPlaylistItems = db.localPlaylistDao().allItems().groupBy { it.playlistId }
+        val localPlaylists = db.localPlaylistDao().allPlaylists().map { playlist ->
+            LocalPlaylist(
+                id = playlist.playlistId,
+                name = playlist.name,
+                files = localPlaylistItems[playlist.playlistId].orEmpty().map { item ->
+                    LocalAudioFile(item.source, item.displayName, item.mimeType)
+                },
+            )
+        }
         val subscriptions = db.userDataDao().allSubscriptions().map { it.podcastId }.toSet()
-        val enclosures = db.episodeDao().allEnclosures().groupBy { it.episodeId }
         val categoryNames = db.categoryDao().allCategories().associate { it.categoryKey to it.displayName }
         val categoryMappings = db.categoryDao().allMappings().groupBy { it.podcastId }
         val podcasts = db.podcastDao().allPodcasts().map { entity ->
@@ -525,13 +618,16 @@ class MollieStore(
             }
             entity.toModel(entity.podcastId in subscriptions, categories)
         }
-        if (podcasts.isEmpty()) return
-        val history = db.userDataDao().allHistory().map { PlaybackHistory(EpisodeId(it.episodeId), it.lastPlayedAt, it.positionMs, it.durationSnapshotMs, it.totalPlayedMs, it.completed) }
+        if (podcasts.isEmpty() && localPlaylists.isEmpty()) return
+        val history = db.userDataDao().recentHistoryForRestore(RESTORE_HISTORY_LIMIT)
+            .map { PlaybackHistory(EpisodeId(it.episodeId), it.lastPlayedAt, it.positionMs, it.durationSnapshotMs, it.totalPlayedMs, it.completed) }
         playbackWriteMutex.withLock {
             lastPlaybackTimestamp = maxOf(lastPlaybackTimestamp, history.maxOfOrNull(PlaybackHistory::lastPlayedAtMillis) ?: 0L)
         }
         val positions = history.associate { it.episodeId.value to if (it.completed) 0L else it.positionMillis }
-        val restoredEpisodes = db.episodeDao().allEpisodes().map { entity -> entity.toModel(enclosures[entity.episodeId].orEmpty(), positions[entity.episodeId] ?: 0) }
+        val episodeEntities = db.episodeDao().latestForRestore(RESTORE_EPISODE_LIMIT)
+        val enclosures = db.episodeDao().enclosuresFor(episodeEntities.map { it.episodeId }).groupBy { it.episodeId }
+        val restoredEpisodes = episodeEntities.map { entity -> entity.toModel(enclosures[entity.episodeId].orEmpty(), positions[entity.episodeId] ?: 0) }
         // The first prototype shipped a non-existent placeholder MP3. Do not expose it as playable media.
         val episodes = restoredEpisodes.filterNot { episode -> episode.enclosures.any { it.url == LEGACY_PLACEHOLDER_MEDIA_URL } }
         val favorites = db.userDataDao().allFavorites().mapTo(mutableSetOf()) { EpisodeId(it.episodeId) }
@@ -543,6 +639,7 @@ class MollieStore(
                 favoriteIds = favorites,
                 downloads = downloads,
                 history = history,
+                localPlaylists = localPlaylists,
                 downloadsSupported = downloadGateway.supported,
             )
         }
@@ -553,7 +650,12 @@ class MollieStore(
         return maxOf(now, lastPlaybackTimestamp + 1).also { lastPlaybackTimestamp = it }
     }
 
-    private companion object { const val MAX_FEED_PREVIEWS = 20 }
+    private companion object {
+        const val MAX_FEED_PREVIEWS = 20
+        // Episode descriptions and HTML can be large; keep startup well below Android's 192 MB heap budget.
+        const val RESTORE_EPISODE_LIMIT = 250
+        const val RESTORE_HISTORY_LIMIT = 500
+    }
 }
 
 private fun Episode.toEntity() = EpisodeEntity(

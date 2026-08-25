@@ -1,6 +1,7 @@
 package mammoth.mollie.caster.data.database
 
 import androidx.room3.ConstructedBy
+import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
@@ -18,8 +19,11 @@ import androidx.room3.RoomDatabaseConstructor
         FavoriteEntity::class,
         PlaybackHistoryEntity::class,
         DownloadEntity::class,
+        LocalPlaylistEntity::class,
+        LocalPlaylistItemEntity::class,
     ],
-    version = 1,
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )
 @ConstructedBy(MollieDatabaseConstructor::class)
@@ -31,6 +35,7 @@ abstract class MollieDatabase : RoomDatabase() {
     abstract fun syncDao(): SyncDao
     abstract fun feedStoreDao(): FeedStoreDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun localPlaylistDao(): LocalPlaylistDao
 }
 
 @Suppress("KotlinNoActualForExpect")

@@ -9,6 +9,7 @@ data class LibraryState(
     val favoriteIds: Set<EpisodeId> = emptySet(),
     val downloads: List<Download> = emptyList(),
     val history: List<PlaybackHistory> = emptyList(),
+    val localPlaylists: List<LocalPlaylist> = emptyList(),
     val downloadsSupported: Boolean = false,
     val cellularDownloadControlSupported: Boolean = false,
     val cellularDownloadsAllowed: Boolean = false,

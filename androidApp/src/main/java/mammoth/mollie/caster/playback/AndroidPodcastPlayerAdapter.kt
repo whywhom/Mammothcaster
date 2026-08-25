@@ -9,15 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import mammoth.mollie.caster.data.cache.validatePlayableMedia
+import mammoth.mollie.caster.model.Enclosure
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.model.EpisodeId
 import mammoth.mollie.caster.model.PodcastId
-import mammoth.mollie.caster.model.Enclosure
-import mammoth.mollie.caster.data.cache.validateRemoteMedia
-import mammoth.mollie.caster.playback.PlayerState
-import mammoth.mollie.caster.playback.PlayerCapabilities
-import mammoth.mollie.caster.playback.PlayerStatus
-import mammoth.mollie.caster.playback.PodcastPlayer
 import mammoth.mollie.caster.platform.currentTimeMillis
 
 class AndroidPodcastPlayerAdapter(
@@ -79,7 +75,7 @@ class AndroidPodcastPlayerAdapter(
         val enclosure = episode.enclosures.firstOrNull { it.mimeType?.startsWith("audio/") == true }
             ?: episode.enclosures.firstOrNull()
             ?: return
-        validateRemoteMedia(episode.id.value, enclosure.url)?.let { message ->
+        validatePlayableMedia(episode.id.value, enclosure.url)?.let { message ->
             mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = message)
             return
         }

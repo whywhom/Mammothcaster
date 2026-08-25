@@ -55,6 +55,13 @@ interface EpisodeDao {
     @Query("SELECT * FROM episode_enclosures ORDER BY episode_id, position")
     suspend fun allEnclosures(): List<EpisodeEnclosureEntity>
 
+    /** Startup must not materialize an unbounded episode catalog on constrained devices. */
+    @Query("SELECT * FROM episodes ORDER BY published_at IS NULL, published_at DESC LIMIT :limit")
+    suspend fun latestForRestore(limit: Int): List<EpisodeEntity>
+
+    @Query("SELECT * FROM episode_enclosures WHERE episode_id IN (:episodeIds) ORDER BY episode_id, position")
+    suspend fun enclosuresFor(episodeIds: List<String>): List<EpisodeEnclosureEntity>
+
     @Query("SELECT * FROM episodes WHERE episode_id = :id")
     fun observeEpisode(id: String): Flow<EpisodeEntity?>
 
@@ -87,6 +94,9 @@ interface UserDataDao {
 
     @Query("SELECT * FROM playback_history ORDER BY last_played_at DESC")
     suspend fun allHistory(): List<PlaybackHistoryEntity>
+
+    @Query("SELECT * FROM playback_history ORDER BY last_played_at DESC LIMIT :limit")
+    suspend fun recentHistoryForRestore(limit: Int): List<PlaybackHistoryEntity>
 
     @Query("SELECT * FROM favorites ORDER BY created_at DESC")
     fun observeFavorites(): Flow<List<FavoriteEntity>>
@@ -158,6 +168,43 @@ interface DownloadDao {
     suspend fun replaceAll(downloads: List<DownloadEntity>) {
         clearAll()
         downloads.forEach { upsert(it) }
+    }
+}
+
+@Dao
+interface LocalPlaylistDao {
+    @Query("SELECT * FROM local_playlists ORDER BY created_at ASC, playlist_id ASC")
+    suspend fun allPlaylists(): List<LocalPlaylistEntity>
+
+    @Query("SELECT * FROM local_playlist_items ORDER BY playlist_id ASC, position ASC")
+    suspend fun allItems(): List<LocalPlaylistItemEntity>
+
+    @Upsert
+    suspend fun upsert(playlist: LocalPlaylistEntity)
+
+    @Upsert
+    suspend fun upsertItems(items: List<LocalPlaylistItemEntity>)
+
+    @Query("UPDATE local_playlists SET name = :name WHERE playlist_id = :playlistId")
+    suspend fun rename(playlistId: String, name: String)
+
+    @Query("DELETE FROM local_playlist_items WHERE playlist_id = :playlistId")
+    suspend fun deleteItems(playlistId: String)
+
+    @Query("DELETE FROM local_playlists WHERE playlist_id = :playlistId")
+    suspend fun delete(playlistId: String)
+
+    @Transaction
+    suspend fun add(playlist: LocalPlaylistEntity, items: List<LocalPlaylistItemEntity>) {
+        upsert(playlist)
+        if (items.isNotEmpty()) upsertItems(items)
+    }
+
+    @Transaction
+    suspend fun replace(playlistId: String, name: String, items: List<LocalPlaylistItemEntity>) {
+        rename(playlistId, name)
+        deleteItems(playlistId)
+        if (items.isNotEmpty()) upsertItems(items)
     }
 }
 

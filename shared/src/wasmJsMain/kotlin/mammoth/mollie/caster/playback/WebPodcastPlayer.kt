@@ -11,7 +11,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.downloads.WebEpisodeDownloadGateway
-import mammoth.mollie.caster.data.cache.validateRemoteMedia
+import mammoth.mollie.caster.data.cache.validatePlayableMedia
 import mammoth.mollie.caster.platform.currentTimeMillis
 import org.w3c.dom.Audio
 
@@ -49,7 +49,7 @@ class WebPodcastPlayer(private val mediaFiles: WebEpisodeDownloadGateway) : Podc
 
     override fun play(episode: Episode) {
         episode.enclosures.firstOrNull()?.let { enclosure ->
-            validateRemoteMedia(episode.id.value, enclosure.url)?.let {
+            validatePlayableMedia(episode.id.value, enclosure.url)?.let {
                 mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = it)
                 return
             }

@@ -54,3 +54,14 @@ fun validateRemoteMedia(episodeId: String, url: String): String? = when {
         "Audio URL must use HTTP or HTTPS"
     else -> null
 }
+
+/** Validates both RSS media and user-selected local media without widening download input rules. */
+fun validatePlayableMedia(episodeId: String, url: String): String? = when {
+    episodeId.isBlank() -> "Episode ID is missing"
+    url.isBlank() -> "Audio source is missing"
+    url.startsWith("https://", ignoreCase = true) || url.startsWith("http://", ignoreCase = true) -> null
+    url.startsWith("content:", ignoreCase = true) ||
+        url.startsWith("file:", ignoreCase = true) ||
+        url.startsWith("blob:", ignoreCase = true) -> null
+    else -> "Audio must be selected from this device or use HTTP or HTTPS"
+}

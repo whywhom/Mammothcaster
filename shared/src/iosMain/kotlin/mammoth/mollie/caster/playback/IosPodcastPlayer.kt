@@ -1,5 +1,6 @@
 package mammoth.mollie.caster.playback
 
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -9,16 +10,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.cinterop.ExperimentalForeignApi
-import mammoth.mollie.caster.model.Episode
+import mammoth.mollie.caster.data.cache.validatePlayableMedia
 import mammoth.mollie.caster.downloads.IosEpisodeDownloadGateway
-import mammoth.mollie.caster.data.cache.validateRemoteMedia
+import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.platform.currentTimeMillis
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.setActive
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
+import platform.AVFoundation.AVPlayerItemStatusFailed
 import platform.AVFoundation.currentItem
 import platform.AVFoundation.currentTime
 import platform.AVFoundation.defaultRate
@@ -30,6 +31,7 @@ import platform.AVFoundation.replaceCurrentItemWithPlayerItem
 import platform.AVFoundation.seekToTime
 import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMakeWithSeconds
+import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
 
 /** AVPlayer/AVAudioSession adapter for iOS. Background audio entitlement remains an app-level setting. */
@@ -60,12 +62,22 @@ class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : Podc
     }
 
     override fun play(episode: Episode) {
-        episode.enclosures.firstOrNull()?.let { enclosure ->
-            validateRemoteMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
-        }
-        val source = mediaFiles.playbackSource(episode).ifBlank { return fail(episode, "This episode has no playable audio URL") }
-        val url = NSURL(string = source)
-        if (url == null) return fail(episode, "This episode has an invalid audio URL")
+        val enclosure = episode.enclosures.firstOrNull()
+            ?: return fail(episode, "This episode has no playable audio URL")
+        validatePlayableMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
+        // Local playlists already point to an app-owned file. Do not route those files
+        // through the podcast download/cache resolver before handing them to AVPlayer.
+        val isLocalFile = enclosure.url.startsWith("file:", ignoreCase = true)
+        val source = if (isLocalFile) {
+            enclosure.url
+        } else {
+            mediaFiles.playbackSource(episode)
+        }.ifBlank { return fail(episode, "This episode has no playable audio URL") }
+        val url = if (isLocalFile) localFileUrl(source) else NSURL(string = source)
+        if (url == null) return fail(
+            episode,
+            if (isLocalFile) "This local audio file is unavailable. Remove it and add it again." else "This episode has an invalid audio URL",
+        )
         val speed = state.value.speed
         mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Loading, positionMillis = episode.playbackPositionMillis, speed = speed)
         player.replaceCurrentItemWithPlayerItem(AVPlayerItem(uRL = url))
@@ -89,10 +101,17 @@ class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : Podc
 
     private fun publish() {
         val value = mutableState.value
+        val item = player.currentItem
+        if (item?.status == AVPlayerItemStatusFailed) {
+            player.pause()
+            val message = item.error?.localizedDescription ?: "iOS could not play this audio file"
+            mutableState.value = PlayerState(episode = value.episode, status = PlayerStatus.Failed, errorMessage = message)
+            return
+        }
         val position = (CMTimeGetSeconds(player.currentTime()) * 1000).toLong().coerceAtLeast(0)
-        val duration = player.currentItem?.duration?.let { (CMTimeGetSeconds(it) * 1000).toLong().takeIf { value -> value > 0 } } ?: value.durationMillis
+        val duration = item?.duration?.let { (CMTimeGetSeconds(it) * 1000).toLong().takeIf { value -> value > 0 } } ?: value.durationMillis
         val status = when {
-            player.currentItem == null -> PlayerStatus.Idle
+            item == null -> PlayerStatus.Idle
             player.rate > 0f -> PlayerStatus.Playing
             value.status == PlayerStatus.Loading -> PlayerStatus.Ready
             else -> PlayerStatus.Paused
@@ -102,5 +121,11 @@ class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : Podc
 
     private fun fail(episode: Episode, message: String) {
         mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = message)
+    }
+
+    private fun localFileUrl(source: String): NSURL? {
+        val path = NSURL(string = source)?.path ?: return null
+        if (!NSFileManager.defaultManager.fileExistsAtPath(path)) return null
+        return NSURL.fileURLWithPath(path)
     }
 }

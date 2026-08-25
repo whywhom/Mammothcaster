@@ -52,6 +52,9 @@ import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategory
 import mammoth.mollie.caster.playback.PodcastPlayer
 import mammoth.mollie.caster.playback.PreviewPodcastPlayer
+import mammoth.mollie.caster.model.LocalPlaylist
+import mammoth.mollie.caster.playback.QueuedPodcastPlayer
+import mammoth.mollie.caster.ui.localaudio.rememberLocalAudioFilePicker
 import mammoth.mollie.caster.ui.dialogs.AddFeedDialog
 import mammoth.mollie.caster.ui.localization.LocalAppLanguage
 import mammoth.mollie.caster.ui.localization.rememberAppLanguagePreference
@@ -79,6 +82,8 @@ fun MolliecasterApp(
     store: MollieStore = remember { MollieStore() },
     player: PodcastPlayer = remember { PreviewPodcastPlayer() },
 ) {
+    val queuedPlayer = remember(player) { QueuedPodcastPlayer(player) }
+    val localAudioPicker = rememberLocalAudioFilePicker()
     val systemDarkTheme = isSystemInDarkTheme()
     val library by store.state.collectAsState()
     val playerState by player.state.collectAsState()
@@ -92,6 +97,8 @@ fun MolliecasterApp(
     var searchResultsVisible by remember { mutableStateOf(false) }
     var selectedLibrarySection by remember { mutableStateOf<LibrarySection?>(null) }
     var selectedLibraryChannel by remember { mutableStateOf<String?>(null) }
+    var selectedLocalPlaylistId by remember { mutableStateOf<String?>(null) }
+    var localPlaylistNameDialog by remember { mutableStateOf(false) }
     var playerExpanded by remember { mutableStateOf(false) }
     var addFeed by remember { mutableStateOf(false) }
     var librarySync by remember { mutableStateOf(false) }
@@ -104,9 +111,9 @@ fun MolliecasterApp(
     val audioPlaybackUnavailable = stringResource(Res.string.audio_playback_unavailable)
     val discoverySourcesUnavailable = stringResource(Res.string.discovery_sources_unavailable)
     val startPlayback: (Episode) -> Unit = { episode ->
-        if (player.capabilities.realPlayback) {
+        if (queuedPlayer.capabilities.realPlayback) {
             store.markPlayed(episode)
-            player.play(episode)
+            queuedPlayer.play(episode)
         } else {
             scope.launch { snackbar.showSnackbar(audioPlaybackUnavailable) }
         }
@@ -145,7 +152,7 @@ fun MolliecasterApp(
             ) {
                 when {
                 playerExpanded && playerState.episode != null -> PlayerScreen(
-                    player = player,
+                    player = queuedPlayer,
                     podcastTitle = library.podcasts
                         .firstOrNull { it.id == playerState.episode?.podcastId }
                         ?.title
@@ -158,11 +165,11 @@ fun MolliecasterApp(
                     episode = library.episodes.firstOrNull { it.id == selectedEpisode!!.id } ?: selectedEpisode!!,
                     state = library,
                     store = store,
-                    player = player,
+                    player = queuedPlayer,
                     playerState = playerState,
                     onPlay = {
                         startPlayback(it)
-                        if (player.capabilities.realPlayback) playerExpanded = true
+                        if (queuedPlayer.capabilities.realPlayback) playerExpanded = true
                     },
                     onOpenPlayer = { playerExpanded = true },
                     darkTheme = darkTheme,
@@ -173,7 +180,7 @@ fun MolliecasterApp(
                     podcast = library.podcasts.firstOrNull { it.id == selectedPodcast!!.id } ?: selectedPodcast!!,
                     state = library,
                     store = store,
-                    player = player,
+                    player = queuedPlayer,
                     onPlay = startPlayback,
                     onSubscribe = { podcast -> scope.launch { store.subscribeFeed(podcast.feedUrl) } },
                     onSync = { podcast -> scope.launch { store.subscribeFeed(podcast.feedUrl) } },
@@ -291,7 +298,7 @@ fun MolliecasterApp(
                                 onEpisode = { selectedEpisode = it },
                                 onPlay = {
                                     startPlayback(it)
-                                    if (player.capabilities.realPlayback) playerExpanded = true
+                                    if (queuedPlayer.capabilities.realPlayback) playerExpanded = true
                                 },
                                 onSearch = {
                                     selectedSearchCategory = null
@@ -353,25 +360,70 @@ fun MolliecasterApp(
                                 store = store,
                                 selectedSection = selectedLibrarySection,
                                 selectedChannel = selectedLibraryChannel,
+                                selectedLocalPlaylistId = selectedLocalPlaylistId,
                                 onSection = {
                                     selectedLibrarySection = it
                                     selectedLibraryChannel = null
+                                    selectedLocalPlaylistId = null
                                 },
                                 onChannel = { selectedLibraryChannel = it },
                                 onBack = {
-                                    if (selectedLibraryChannel != null) selectedLibraryChannel = null
+                                    if (selectedLocalPlaylistId != null) selectedLocalPlaylistId = null
+                                    else if (selectedLibraryChannel != null) selectedLibraryChannel = null
                                     else selectedLibrarySection = null
                                 },
                                 onPodcast = { selectedPodcast = it },
                                 onEpisode = { selectedEpisode = it },
                                 onPlay = {
                                     startPlayback(it)
-                                    if (player.capabilities.realPlayback) playerExpanded = true
+                                    if (queuedPlayer.capabilities.realPlayback) playerExpanded = true
+                                },
+                                localPlaylists = library.localPlaylists,
+                                onAddLocalPlaylist = { localPlaylistNameDialog = true },
+                                onCreateLocalPlaylist = { name ->
+                                    localPlaylistNameDialog = false
+                                    localAudioPicker.pickMultiple(
+                                        onFiles = { files ->
+                                            store.addLocalPlaylist(LocalPlaylist(
+                                                id = "local-${library.localPlaylists.size + 1}-${files.hashCode()}",
+                                                name = name,
+                                                files = files,
+                                            ))
+                                        },
+                                        onFailure = { message -> scope.launch { snackbar.showSnackbar(message) } },
+                                    )
+                                },
+                                creatingLocalPlaylist = localPlaylistNameDialog,
+                                onDismissCreateLocalPlaylist = { localPlaylistNameDialog = false },
+                                onOpenLocalPlaylist = { selectedLocalPlaylistId = it.id },
+                                onPlayLocalPlaylist = { playlist, shuffle ->
+                                    queuedPlayer.playPlaylist(playlist, shuffle)
+                                    playerExpanded = true
+                                },
+                                onPlayLocalPlaylistItem = { playlist, index ->
+                                    queuedPlayer.playPlaylist(playlist, shuffle = false, startIndex = index)
+                                    playerExpanded = true
+                                },
+                                onRenameLocalPlaylist = { playlist, name ->
+                                    store.renameLocalPlaylist(playlist.id, name)
+                                },
+                                onAddLocalPlaylistFiles = { playlist ->
+                                    localAudioPicker.pickMultiple(
+                                        onFiles = { files -> store.addLocalPlaylistFiles(playlist.id, files) },
+                                        onFailure = { message -> scope.launch { snackbar.showSnackbar(message) } },
+                                    )
+                                },
+                                onRemoveLocalPlaylistFile = { playlist, index ->
+                                    store.removeLocalPlaylistFile(playlist.id, index)
+                                },
+                                onDeleteLocalPlaylist = { playlist ->
+                                    store.deleteLocalPlaylist(playlist.id)
+                                    selectedLocalPlaylistId = null
                                 },
                             )
                             Destination.Settings -> SettingsScreen(
                                 darkTheme = darkTheme,
-                                player = player,
+                                player = queuedPlayer,
                                 playerState = playerState,
                                 downloadsSupported = library.downloadsSupported,
                                 cellularDownloadControlSupported = library.cellularDownloadControlSupported,

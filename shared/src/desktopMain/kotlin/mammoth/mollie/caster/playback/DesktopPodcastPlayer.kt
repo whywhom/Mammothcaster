@@ -15,7 +15,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
-import mammoth.mollie.caster.data.cache.validateRemoteMedia
+import mammoth.mollie.caster.data.cache.validatePlayableMedia
 import mammoth.mollie.caster.platform.currentTimeMillis
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -45,7 +45,7 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
 
     override fun play(episode: Episode) {
         episode.enclosures.firstOrNull()?.let { enclosure ->
-            validateRemoteMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
+            validatePlayableMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
         }
         val source = mediaFiles.playbackSource(episode).ifBlank { return fail(episode, "This episode has no playable audio URL") }
         onFx {

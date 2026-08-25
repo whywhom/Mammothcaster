@@ -196,3 +196,29 @@ data class DownloadEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "completed_at") val completedAt: Long?,
 )
+
+@Entity(tableName = "local_playlists", primaryKeys = ["playlist_id"])
+data class LocalPlaylistEntity(
+    @ColumnInfo(name = "playlist_id") val playlistId: String,
+    val name: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+@Entity(
+    tableName = "local_playlist_items",
+    foreignKeys = [ForeignKey(
+        entity = LocalPlaylistEntity::class,
+        parentColumns = ["playlist_id"],
+        childColumns = ["playlist_id"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+    indices = [Index("playlist_id")],
+    primaryKeys = ["playlist_id", "position"],
+)
+data class LocalPlaylistItemEntity(
+    @ColumnInfo(name = "playlist_id") val playlistId: String,
+    val position: Int,
+    val source: String,
+    @ColumnInfo(name = "display_name") val displayName: String,
+    @ColumnInfo(name = "mime_type") val mimeType: String?,
+)
