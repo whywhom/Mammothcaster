@@ -173,7 +173,7 @@ interface DownloadDao {
 
 @Dao
 interface LocalPlaylistDao {
-    @Query("SELECT * FROM local_playlists ORDER BY created_at ASC, playlist_id ASC")
+    @Query("SELECT * FROM local_playlists ORDER BY is_pinned DESC, name COLLATE NOCASE ASC, playlist_id ASC")
     suspend fun allPlaylists(): List<LocalPlaylistEntity>
 
     @Query("SELECT * FROM local_playlist_items ORDER BY playlist_id ASC, position ASC")
@@ -187,6 +187,9 @@ interface LocalPlaylistDao {
 
     @Query("UPDATE local_playlists SET name = :name WHERE playlist_id = :playlistId")
     suspend fun rename(playlistId: String, name: String)
+
+    @Query("UPDATE local_playlists SET is_pinned = :pinned WHERE playlist_id = :playlistId")
+    suspend fun setPinned(playlistId: String, pinned: Boolean)
 
     @Query("DELETE FROM local_playlist_items WHERE playlist_id = :playlistId")
     suspend fun deleteItems(playlistId: String)

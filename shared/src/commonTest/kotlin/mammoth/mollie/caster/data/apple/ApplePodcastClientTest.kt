@@ -32,11 +32,11 @@ class ApplePodcastClientTest {
     }
 
     @Test
-    fun searchesCategoryByGenreAndRequestsAppleMaximum() = runTest {
+    fun searchesCategoryByNameAndRequestsAppleMaximum() = runTest {
         val technology = PodcastCategory("technology", "Technology")
         val client = HttpClient(MockEngine { request ->
             assertEquals("Technology", request.url.parameters["term"])
-            assertEquals("genreIndex", request.url.parameters["attribute"])
+            assertEquals(null, request.url.parameters["attribute"])
             assertEquals("podcast", request.url.parameters["media"])
             assertEquals("podcast", request.url.parameters["entity"])
             assertEquals("200", request.url.parameters["limit"])

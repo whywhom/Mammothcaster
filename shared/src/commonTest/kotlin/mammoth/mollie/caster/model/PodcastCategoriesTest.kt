@@ -26,15 +26,18 @@ class PodcastCategoriesTest {
     }
 
     @Test
-    fun catalogContainsEveryAppleTopLevelCategoryAndAi() {
+    fun catalogContainsFiftyBrowseCategoriesIncludingAi() {
         val keys = PodcastCategories.all.mapTo(mutableSetOf(), PodcastCategory::key)
+
+        assertEquals(50, keys.size)
 
         assertTrue(
             setOf(
                 "arts", "business", "comedy", "education", "fiction", "government", "history",
                 "health", "kids-family", "leisure", "music", "news", "religion-spirituality",
                 "science", "society-culture", "sports", "technology", "true-crime", "tv-film",
-                "artificial-intelligence",
+                "artificial-intelligence", "books", "parenting", "business-news", "daily-news",
+                "politics", "tech-news",
             ).all(keys::contains),
         )
     }

@@ -77,7 +77,7 @@ data class Download(
 )
 
 object PodcastCategories {
-    /** Apple Podcasts top-level categories, plus AI as a Molliecaster discovery category. */
+    /** Fifty browse categories: Apple Podcasts categories/subcategories plus Molliecaster's AI discovery category. */
     val all = listOf(
         PodcastCategory("arts", "Arts"),
         PodcastCategory("business", "Business"),
@@ -99,6 +99,35 @@ object PodcastCategories {
         PodcastCategory("artificial-intelligence", "AI"),
         PodcastCategory("true-crime", "True Crime"),
         PodcastCategory("tv-film", "TV & Film"),
+        PodcastCategory("books", "Books"),
+        PodcastCategory("design", "Design"),
+        PodcastCategory("fashion-beauty", "Fashion & Beauty"),
+        PodcastCategory("food", "Food"),
+        PodcastCategory("careers", "Careers"),
+        PodcastCategory("entrepreneurship", "Entrepreneurship"),
+        PodcastCategory("investing", "Investing"),
+        PodcastCategory("management", "Management"),
+        PodcastCategory("marketing", "Marketing"),
+        PodcastCategory("non-profit", "Non-Profit"),
+        PodcastCategory("comedy-interviews", "Comedy Interviews"),
+        PodcastCategory("improv", "Improv"),
+        PodcastCategory("stand-up", "Stand-Up"),
+        PodcastCategory("courses", "Courses"),
+        PodcastCategory("how-to", "How To"),
+        PodcastCategory("language-learning", "Language Learning"),
+        PodcastCategory("self-improvement", "Self-Improvement"),
+        PodcastCategory("education-for-kids", "Education for Kids"),
+        PodcastCategory("parenting", "Parenting"),
+        PodcastCategory("pets-animals", "Pets & Animals"),
+        PodcastCategory("stories-for-kids", "Stories for Kids"),
+        PodcastCategory("alternative-health", "Alternative Health"),
+        PodcastCategory("fitness", "Fitness"),
+        PodcastCategory("mental-health", "Mental Health"),
+        PodcastCategory("nutrition", "Nutrition"),
+        PodcastCategory("business-news", "Business News"),
+        PodcastCategory("daily-news", "Daily News"),
+        PodcastCategory("politics", "Politics"),
+        PodcastCategory("tech-news", "Tech News"),
     )
 
     /** Categories actually present in the user's subscribed RSS feeds. */

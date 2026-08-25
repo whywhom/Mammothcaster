@@ -30,13 +30,14 @@ class ApplePodcastClient(
     suspend fun search(query: String, limit: Int = DEFAULT_LIMIT): ApplePodcastSearchResult =
         search(query = query, limit = limit, attribute = null, category = null)
 
+    /** Searches Apple by its official category/subcategory name. */
     suspend fun searchCategory(
         category: PodcastCategory,
         limit: Int = MAX_LIMIT,
     ): ApplePodcastSearchResult = search(
         query = category.displayName,
         limit = limit,
-        attribute = if (category.key == "artificial-intelligence") "keywordsTerm" else "genreIndex",
+        attribute = if (category.key == "artificial-intelligence") "keywordsTerm" else null,
         category = category,
     )
 

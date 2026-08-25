@@ -202,6 +202,7 @@ data class LocalPlaylistEntity(
     @ColumnInfo(name = "playlist_id") val playlistId: String,
     val name: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "is_pinned", defaultValue = "0") val isPinned: Boolean = false,
 )
 
 @Entity(

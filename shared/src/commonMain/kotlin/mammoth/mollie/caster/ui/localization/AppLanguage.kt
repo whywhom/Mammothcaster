@@ -141,4 +141,12 @@ private val chineseCategories = mapOf(
     "religion-spirituality" to "宗教与灵性", "science" to "科学", "society-culture" to "社会与文化",
     "sports" to "体育", "technology" to "科技", "artificial-intelligence" to "人工智能",
     "true-crime" to "真实犯罪", "tv-film" to "电视与电影",
+    "books" to "图书", "design" to "设计", "fashion-beauty" to "时尚与美容", "food" to "美食",
+    "careers" to "职业", "entrepreneurship" to "创业", "investing" to "投资", "management" to "管理",
+    "marketing" to "营销", "non-profit" to "非营利", "comedy-interviews" to "喜剧访谈", "improv" to "即兴喜剧",
+    "stand-up" to "单口喜剧", "courses" to "课程", "how-to" to "实用指南", "language-learning" to "语言学习",
+    "self-improvement" to "自我提升", "education-for-kids" to "儿童教育", "parenting" to "育儿",
+    "pets-animals" to "宠物与动物", "stories-for-kids" to "儿童故事", "alternative-health" to "替代健康",
+    "fitness" to "健身", "mental-health" to "心理健康", "nutrition" to "营养",
+    "business-news" to "商业新闻", "daily-news" to "每日新闻", "politics" to "政治", "tech-news" to "科技新闻",
 )

@@ -19,17 +19,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Cast
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -43,20 +48,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mammoth.mollie.caster.data.LibraryState
 import mammoth.mollie.caster.data.MollieStore
 import mammoth.mollie.caster.model.DownloadState
 import mammoth.mollie.caster.model.Episode
-import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.LocalPlaylist
+import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.ui.components.EmptyHint
 import mammoth.mollie.caster.ui.components.PodcastArtwork
 import mammoth.mollie.caster.ui.components.SectionTitle
 import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
-import molliecaster.shared.generated.resources.back_to_library
 import molliecaster.shared.generated.resources.channels
 import molliecaster.shared.generated.resources.downloaded
 import molliecaster.shared.generated.resources.latest_episodes
@@ -78,7 +83,7 @@ fun LibrarySection.title(): String = when (this) {
     LibrarySection.Downloaded -> stringResource(Res.string.downloaded)
     LibrarySection.LatestEpisodes -> stringResource(Res.string.latest_episodes)
     LibrarySection.RecentlyPlayed -> stringResource(Res.string.recently_played)
-    LibrarySection.LocalAudio -> "Local playlists"
+    LibrarySection.LocalAudio -> "Your audio"
 }
 @Composable
 fun LibraryScreen(
@@ -104,6 +109,8 @@ fun LibraryScreen(
     onAddLocalPlaylistFiles: (LocalPlaylist) -> Unit = {},
     onRemoveLocalPlaylistFile: (LocalPlaylist, Int) -> Unit = { _, _ -> },
     onDeleteLocalPlaylist: (LocalPlaylist) -> Unit = {},
+    onSetLocalPlaylistPinned: (LocalPlaylist, Boolean) -> Unit = { _, _ -> },
+    onMoveLocalPlaylistFile: (LocalPlaylist, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     if (selectedSection == null) {
         LibraryOverview(state = state, onSection = onSection, onPodcast = onPodcast)
@@ -128,6 +135,8 @@ fun LibraryScreen(
                 onAddAudio = { onAddLocalPlaylistFiles(playlist) },
                 onRemoveItem = { index -> onRemoveLocalPlaylistFile(playlist, index) },
                 onDelete = { onDeleteLocalPlaylist(playlist) },
+                onSetPinned = { pinned -> onSetLocalPlaylistPinned(playlist, pinned) },
+                onMoveItem = { from, to -> onMoveLocalPlaylistFile(playlist, from, to) },
             )
             return
         }
@@ -144,6 +153,7 @@ fun LibraryScreen(
         onAddLocalPlaylist = onAddLocalPlaylist,
         onOpenLocalPlaylist = onOpenLocalPlaylist,
         onPlayLocalPlaylist = onPlayLocalPlaylist,
+        onSetLocalPlaylistPinned = onSetLocalPlaylistPinned,
     )
     if (creatingLocalPlaylist) {
         LocalPlaylistNameDialog(onDismiss = onDismissCreateLocalPlaylist, onCreate = onCreateLocalPlaylist)
@@ -234,6 +244,7 @@ fun LibrarySectionDetails(
     onAddLocalPlaylist: () -> Unit,
     onOpenLocalPlaylist: (LocalPlaylist) -> Unit,
     onPlayLocalPlaylist: (LocalPlaylist, Boolean) -> Unit,
+    onSetLocalPlaylistPinned: (LocalPlaylist, Boolean) -> Unit,
 ) {
     val subscriptions = state.podcasts.filter(Podcast::isSubscribed)
     val subscribedIds = subscriptions.mapTo(mutableSetOf(), Podcast::id)
@@ -281,14 +292,34 @@ fun LibrarySectionDetails(
                 items(recentlyPlayed) { EpisodeRow(it, state, store, onOpen = onEpisode, onPlay = onPlay) }
             }
             LibrarySection.LocalAudio -> {
-                item {
-                    LocalPlaylistIntro(onAddLocalPlaylist)
-                }
+                item { LocalPlaylistIntro(localPlaylists, onAddLocalPlaylist) }
                 if (localPlaylists.isEmpty()) item {
                     EmptyHint("Add audio files from this device to make a playlist.")
                 }
-                items(localPlaylists, key = { it.id }) { playlist ->
-                    LocalPlaylistRow(playlist, onOpen = { onOpenLocalPlaylist(playlist) })
+                item {
+                    var query by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text("Find a playlist") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    val filteredPlaylists = localPlaylists.filter { it.name.contains(query, ignoreCase = true) }
+                    if (query.isNotBlank() && filteredPlaylists.isEmpty()) {
+                        EmptyHint("No playlists match \"$query\".")
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
+                        filteredPlaylists.forEach { playlist ->
+                            LocalPlaylistRow(
+                                playlist = playlist,
+                                onOpen = { onOpenLocalPlaylist(playlist) },
+                                onPlay = { onPlayLocalPlaylist(playlist, false) },
+                                onShuffle = { onPlayLocalPlaylist(playlist, true) },
+                                onSetPinned = { onSetLocalPlaylistPinned(playlist, !playlist.isPinned) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -296,7 +327,7 @@ fun LibrarySectionDetails(
 }
 
 @Composable
-private fun LocalPlaylistIntro(onAddLocalPlaylist: () -> Unit) {
+private fun LocalPlaylistIntro(localPlaylists: List<LocalPlaylist>, onAddLocalPlaylist: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -304,15 +335,26 @@ private fun LocalPlaylistIntro(onAddLocalPlaylist: () -> Unit) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Play audio from this device", style = MaterialTheme.typography.titleMedium)
-            Text("Select multiple files, then play them in order or shuffle.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Your audio, your queue", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "${localPlaylists.size} ${if (localPlaylists.size == 1) "playlist" else "playlists"} · ${localPlaylists.sumOf { it.files.size }} tracks on this device",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text("Create a playlist, then play in order or shuffle whenever you like.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick = onAddLocalPlaylist) { Text("Add local audio") }
         }
     }
 }
 
 @Composable
-private fun LocalPlaylistRow(playlist: LocalPlaylist, onOpen: () -> Unit) {
+private fun LocalPlaylistRow(
+    playlist: LocalPlaylist,
+    onOpen: () -> Unit,
+    onPlay: () -> Unit,
+    onShuffle: () -> Unit,
+    onSetPinned: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
         shape = RoundedCornerShape(16.dp),
@@ -325,10 +367,24 @@ private fun LocalPlaylistRow(playlist: LocalPlaylist, onOpen: () -> Unit) {
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(playlist.name, style = MaterialTheme.typography.titleMedium)
-                    Text("${playlist.files.size} audio ${if (playlist.files.size == 1) "file" else "files"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${playlist.files.size} ${if (playlist.files.size == 1) "track" else "tracks"} · On this device", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (playlist.isPinned) {
+                        Text("Pinned", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                IconButton(onClick = onSetPinned) {
+                    Icon(
+                        if (playlist.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                        if (playlist.isPinned) "Unpin ${playlist.name}" else "Pin ${playlist.name}",
+                        tint = if (playlist.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Open ${playlist.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.End))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
+                TextButton(onClick = onPlay, enabled = playlist.files.isNotEmpty()) { Text("Play") }
+                TextButton(onClick = onShuffle, enabled = playlist.files.isNotEmpty()) { Text("Shuffle") }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Open ${playlist.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -371,6 +427,8 @@ private fun LocalPlaylistDetails(
     onAddAudio: () -> Unit,
     onRemoveItem: (Int) -> Unit,
     onDelete: () -> Unit,
+    onSetPinned: (Boolean) -> Unit,
+    onMoveItem: (Int, Int) -> Unit,
 ) {
     var renaming by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
@@ -395,16 +453,48 @@ private fun LocalPlaylistDetails(
                         Button(onClick = onPlay, enabled = playlist.files.isNotEmpty()) { Text("Play") }
                         OutlinedButton(onClick = onShuffle, enabled = playlist.files.isNotEmpty()) { Text("Shuffle") }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { renaming = true }) { Text("Rename") }
-                        TextButton(onClick = onAddAudio) { Text("Add audio") }
-                        TextButton(onClick = { confirmingDelete = true }) { Text("Delete") }
+                    // Keep management actions on two rows. Four text buttons compete for
+                    // space on compact phones and make the final label wrap vertically.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TextButton(
+                            onClick = { onSetPinned(!playlist.isPinned) },
+                            modifier = Modifier.weight(1f),
+                        ) { Text(if (playlist.isPinned) "Unpin" else "Pin", maxLines = 1) }
+                        TextButton(
+                            onClick = { renaming = true },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Rename", maxLines = 1) }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TextButton(
+                            onClick = onAddAudio,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Add audio", maxLines = 1) }
+                        TextButton(
+                            onClick = { confirmingDelete = true },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Delete", maxLines = 1) }
                     }
                 }
             }
         }
         itemsIndexed(playlist.files, key = { index, file -> "$index:${file.source}" }) { index, file ->
-            LocalPlaylistTrackRow(number = index + 1, title = file.displayName, onClick = { onPlayItem(index) }, onRemove = { onRemoveItem(index) })
+            LocalPlaylistTrackRow(
+                number = index + 1,
+                title = file.displayName,
+                onClick = { onPlayItem(index) },
+                onMoveUp = { onMoveItem(index, index - 1) },
+                onMoveDown = { onMoveItem(index, index + 1) },
+                canMoveUp = index > 0,
+                canMoveDown = index < playlist.files.lastIndex,
+                onRemove = { onRemoveItem(index) },
+            )
         }
     }
     if (renaming) {
@@ -428,16 +518,65 @@ private fun LocalPlaylistDetails(
 }
 
 @Composable
-private fun LocalPlaylistTrackRow(number: Int, title: String, onClick: () -> Unit, onRemove: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun LocalPlaylistTrackRow(
+    number: Int,
+    title: String,
+    onClick: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onRemove: () -> Unit,
+) {
+    val displayTitle = title.substringBeforeLast('.').ifBlank { "Local audio" }
+    val fileType = title.substringAfterLast('.', missingDelimiterValue = "").uppercase()
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = AetherTheme.colors.glass,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
     ) {
-        Text(number.toString(), modifier = Modifier.width(30.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.width(14.dp))
-        Text(title.substringBeforeLast('.').ifBlank { "Local audio" }, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        TextButton(onClick = onRemove) { Text("Remove") }
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    number.toString(),
+                    modifier = Modifier.width(30.dp).padding(top = 3.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        displayTitle,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        if (fileType.isBlank()) "Local audio file" else "$fileType audio file",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = onMoveUp, enabled = canMoveUp) {
+                    Icon(Icons.Default.ArrowUpward, "Move $title up")
+                }
+                IconButton(onClick = onMoveDown, enabled = canMoveDown) {
+                    Icon(Icons.Default.ArrowDownward, "Move $title down")
+                }
+                TextButton(onClick = onRemove) { Text("Remove", maxLines = 1) }
+            }
+        }
     }
 }
 

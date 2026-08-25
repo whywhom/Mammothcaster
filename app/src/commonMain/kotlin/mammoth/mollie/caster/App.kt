@@ -193,7 +193,6 @@ fun MolliecasterApp(
                         ?.title
                         ?: playerState.episode?.author.orEmpty(),
                     darkTheme = darkTheme,
-                    onToggleTheme = { darkTheme = !darkTheme },
                     onBack = { playerExpanded = false },
                 )
                 selectedEpisode != null -> EpisodeDetails(
@@ -207,8 +206,6 @@ fun MolliecasterApp(
                         if (queuedPlayer.capabilities.realPlayback) playerExpanded = true
                     },
                     onOpenPlayer = { playerExpanded = true },
-                    darkTheme = darkTheme,
-                    onToggleTheme = { darkTheme = !darkTheme },
                     onBack = { selectedEpisode = null },
                 )
                 selectedPodcast != null -> PodcastDetails(
@@ -220,8 +217,6 @@ fun MolliecasterApp(
                     onSubscribe = { podcast -> scope.launch { store.subscribeFeed(podcast.feedUrl) } },
                     onSync = { podcast -> scope.launch { store.subscribeFeed(podcast.feedUrl) } },
                     onOpenEpisode = { selectedEpisode = it },
-                    darkTheme = darkTheme,
-                    onToggleTheme = { darkTheme = !darkTheme },
                     onBack = { selectedPodcast = null },
                     onOpenPlayer = { playerExpanded = true },
                 )
@@ -251,43 +246,47 @@ fun MolliecasterApp(
                                 }
                             },
                             actions = {
-                                ThemeToggle(darkTheme = darkTheme, onToggle = { darkTheme = !darkTheme })
-                                Box {
-                                    IconButton(
-                                        modifier = Modifier.size(40.dp),
-                                        onClick = { settingsExpanded = true },
-                                    ) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more_actions)) }
-                                    DropdownMenu(
-                                        expanded = settingsExpanded,
-                                        onDismissRequest = { settingsExpanded = false },
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(Res.string.refresh)) },
-                                            leadingIcon = { Icon(Icons.Default.Refresh, null) },
-                                            onClick = {
-                                                settingsExpanded = false
-                                                scope.launch {
-                                                    store.refreshSubscriptions(force = true)
-                                                    store.refreshDiscovery(force = true)
-                                                }
-                                            },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(Res.string.add_rss_feed)) },
-                                            leadingIcon = { Icon(Icons.Default.Add, null) },
-                                            onClick = {
-                                                settingsExpanded = false
-                                                addFeed = true
-                                            },
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(Res.string.opml_import_export)) },
-                                            leadingIcon = { Icon(Icons.Default.Share, null) },
-                                            onClick = {
-                                                settingsExpanded = false
-                                                librarySync = true
-                                            },
-                                        )
+                                // Global toolbar actions belong only to the four root destinations.
+                                // Detail routes use their own contextual toolbar and back navigation.
+                                if (toolbarBack == null) {
+                                    ThemeToggle(darkTheme = darkTheme, onToggle = { darkTheme = !darkTheme })
+                                    Box {
+                                        IconButton(
+                                            modifier = Modifier.size(40.dp),
+                                            onClick = { settingsExpanded = true },
+                                        ) { Icon(Icons.Default.MoreVert, stringResource(Res.string.more_actions)) }
+                                        DropdownMenu(
+                                            expanded = settingsExpanded,
+                                            onDismissRequest = { settingsExpanded = false },
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.refresh)) },
+                                                leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                                                onClick = {
+                                                    settingsExpanded = false
+                                                    scope.launch {
+                                                        store.refreshSubscriptions(force = true)
+                                                        store.refreshDiscovery(force = true)
+                                                    }
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.add_rss_feed)) },
+                                                leadingIcon = { Icon(Icons.Default.Add, null) },
+                                                onClick = {
+                                                    settingsExpanded = false
+                                                    addFeed = true
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.opml_import_export)) },
+                                                leadingIcon = { Icon(Icons.Default.Share, null) },
+                                                onClick = {
+                                                    settingsExpanded = false
+                                                    librarySync = true
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             },
@@ -338,6 +337,16 @@ fun MolliecasterApp(
                                     selectedSearchCategory = null
                                     searchResultsVisible = false
                                     destination = Destination.Search
+                                },
+                                localPlaylists = library.localPlaylists,
+                                onOpenLocalPlaylist = { playlist ->
+                                    destination = Destination.Library
+                                    selectedLibrarySection = LibrarySection.LocalAudio
+                                    selectedLocalPlaylistId = playlist.id
+                                },
+                                onPlayLocalPlaylist = { playlist, shuffle ->
+                                    queuedPlayer.playPlaylist(playlist, shuffle)
+                                    playerExpanded = true
                                 },
                             )
                             Destination.Search -> {
@@ -446,6 +455,12 @@ fun MolliecasterApp(
                                 onDeleteLocalPlaylist = { playlist ->
                                     store.deleteLocalPlaylist(playlist.id)
                                     selectedLocalPlaylistId = null
+                                },
+                                onSetLocalPlaylistPinned = { playlist, pinned ->
+                                    store.setLocalPlaylistPinned(playlist.id, pinned)
+                                },
+                                onMoveLocalPlaylistFile = { playlist, from, to ->
+                                    store.moveLocalPlaylistFile(playlist.id, from, to)
                                 },
                             )
                             Destination.Settings -> SettingsScreen(

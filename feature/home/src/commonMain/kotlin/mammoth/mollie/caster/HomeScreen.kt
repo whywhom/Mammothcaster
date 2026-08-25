@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import mammoth.mollie.caster.data.LibraryState
 import mammoth.mollie.caster.data.discovery.recommendFromDiscovery
 import mammoth.mollie.caster.model.Episode
+import mammoth.mollie.caster.model.LocalPlaylist
 import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategories
 import mammoth.mollie.caster.platform.currentTimeMillis
@@ -70,12 +71,15 @@ fun HomeScreen(
     onEpisode: (Episode) -> Unit,
     onPlay: (Episode) -> Unit,
     onSearch: () -> Unit,
+    localPlaylists: List<LocalPlaylist> = emptyList(),
+    onOpenLocalPlaylist: (LocalPlaylist) -> Unit = {},
+    onPlayLocalPlaylist: (LocalPlaylist, Boolean) -> Unit = { _, _ -> },
 ) {
     val subscriptions = state.podcasts.filter(Podcast::isSubscribed)
     if (subscriptions.isEmpty()) {
-        EmptyLibraryHome(state, onPodcast, onSearch)
+        EmptyLibraryHome(state, onPodcast, onSearch, localPlaylists, onOpenLocalPlaylist, onPlayLocalPlaylist)
     } else {
-        PopulatedLibraryHome(state, subscriptions, onPodcast, onEpisode, onPlay)
+        PopulatedLibraryHome(state, subscriptions, onPodcast, onEpisode, onPlay, localPlaylists, onOpenLocalPlaylist, onPlayLocalPlaylist)
     }
 }
 
@@ -84,6 +88,9 @@ private fun EmptyLibraryHome(
     state: LibraryState,
     onPodcast: (Podcast) -> Unit,
     onSearch: () -> Unit,
+    localPlaylists: List<LocalPlaylist>,
+    onOpenLocalPlaylist: (LocalPlaylist) -> Unit,
+    onPlayLocalPlaylist: (LocalPlaylist, Boolean) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -91,6 +98,7 @@ private fun EmptyLibraryHome(
         verticalArrangement = Arrangement.spacedBy(28.dp),
     ) {
         item { PopularPodcastSearch(onClick = onSearch) }
+        if (localPlaylists.isNotEmpty()) item { LocalPlaylistShelf(localPlaylists, onOpenLocalPlaylist, onPlayLocalPlaylist) }
         if (state.discoveryLoading && state.popularPodcasts.isEmpty()) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -111,6 +119,9 @@ private fun PopulatedLibraryHome(
     onPodcast: (Podcast) -> Unit,
     onEpisode: (Episode) -> Unit,
     onPlay: (Episode) -> Unit,
+    localPlaylists: List<LocalPlaylist>,
+    onOpenLocalPlaylist: (LocalPlaylist) -> Unit,
+    onPlayLocalPlaylist: (LocalPlaylist, Boolean) -> Unit,
 ) {
     val recommended = recommendFromDiscovery(
         candidates = state.popularPodcasts,
@@ -137,6 +148,7 @@ private fun PopulatedLibraryHome(
         verticalArrangement = Arrangement.spacedBy(36.dp),
     ) {
         item { HeroCard(recommended.firstOrNull() ?: subscriptions.firstOrNull(), onPodcast) }
+        if (localPlaylists.isNotEmpty()) item { LocalPlaylistShelf(localPlaylists, onOpenLocalPlaylist, onPlayLocalPlaylist) }
         if (state.popularPodcasts.isNotEmpty()) {
             item { PodcastShelf(stringResource(Res.string.popular_podcasts), state.popularPodcasts, onPodcast) }
         }
@@ -190,6 +202,37 @@ private fun PopulatedLibraryHome(
                 onOpen = { onEpisode(episode) },
                 onPlay = { onPlay(episode) },
             )
+        }
+    }
+}
+
+@Composable
+private fun LocalPlaylistShelf(
+    playlists: List<LocalPlaylist>,
+    onOpen: (LocalPlaylist) -> Unit,
+    onPlay: (LocalPlaylist, Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionTitle("Your local audio")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(playlists.take(8), key = { it.id }) { playlist ->
+                Surface(
+                    modifier = Modifier.width(220.dp).clickable { onOpen(playlist) },
+                    shape = RoundedCornerShape(20.dp),
+                    color = AetherTheme.colors.glass,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Default.PlayArrow, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                        Text(playlist.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${playlist.files.size} ${if (playlist.files.size == 1) "track" else "tracks"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Play", modifier = Modifier.clickable(enabled = playlist.files.isNotEmpty()) { onPlay(playlist, false) }.padding(6.dp), color = MaterialTheme.colorScheme.primary)
+                            Text("Shuffle", modifier = Modifier.clickable(enabled = playlist.files.isNotEmpty()) { onPlay(playlist, true) }.padding(6.dp), color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
         }
     }
 }

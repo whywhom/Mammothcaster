@@ -34,8 +34,10 @@ fun LocalPlaylist.asEpisodes(): List<Episode> = files.mapIndexed { index, file -
 }
 
 /** Adds ordered/shuffle queue behaviour to every native [PodcastPlayer] implementation. */
-class QueuedPodcastPlayer(private val delegate: PodcastPlayer) : PodcastPlayer {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+class QueuedPodcastPlayer(
+    private val delegate: PodcastPlayer,
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+) : PodcastPlayer {
     private val mutableQueue = MutableStateFlow(PlaybackQueue())
     private var handledEndedEpisodeId: String? = null
 

@@ -97,8 +97,6 @@ fun PodcastDetails(
     onSubscribe: (Podcast) -> Unit,
     onSync: (Podcast) -> Unit,
     onOpenEpisode: (Episode) -> Unit,
-    darkTheme: Boolean,
-    onToggleTheme: () -> Unit,
     onBack: () -> Unit,
     onOpenPlayer: () -> Unit,
 ) {
@@ -121,7 +119,6 @@ fun PodcastDetails(
                 ),
                 title = { Text(displayedPodcast.title, maxLines = 1) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-                actions = { ThemeToggle(darkTheme, onToggleTheme) },
             )
         },
     ) { padding ->
@@ -218,8 +215,6 @@ fun EpisodeDetails(
     playerState: mammoth.mollie.caster.playback.PlayerState,
     onPlay: (Episode) -> Unit,
     onOpenPlayer: () -> Unit,
-    darkTheme: Boolean,
-    onToggleTheme: () -> Unit,
     onBack: () -> Unit,
 ) {
     val podcast = state.podcasts.firstOrNull { it.id == episode.podcastId }
@@ -238,7 +233,6 @@ fun EpisodeDetails(
                 ),
                 title = { Text(stringResource(Res.string.episode), maxLines = 1) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back)) } },
-                actions = { ThemeToggle(darkTheme, onToggleTheme) },
             )
         },
     ) { padding ->

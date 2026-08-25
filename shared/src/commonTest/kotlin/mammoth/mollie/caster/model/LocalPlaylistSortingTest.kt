@@ -18,4 +18,15 @@ class LocalPlaylistSortingTest {
             files.sortedByFileName().map(LocalAudioFile::displayName),
         )
     }
+
+    @Test
+    fun sortsPlaylistsByNameAfterPinnedPlaylists() {
+        val playlists = listOf(
+            LocalPlaylist("3", "Zebra", emptyList()),
+            LocalPlaylist("2", "Apple", emptyList()),
+            LocalPlaylist("1", "Pinned mix", emptyList(), isPinned = true),
+        )
+
+        assertEquals(listOf("Pinned mix", "Apple", "Zebra"), playlists.sortedByPlaylistName().map(LocalPlaylist::name))
+    }
 }

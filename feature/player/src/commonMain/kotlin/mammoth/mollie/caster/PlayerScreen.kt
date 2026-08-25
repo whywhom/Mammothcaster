@@ -29,13 +29,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Cast
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -91,12 +88,10 @@ fun PlayerScreen(
     player: PodcastPlayer,
     podcastTitle: String,
     darkTheme: Boolean,
-    onToggleTheme: () -> Unit,
     onBack: () -> Unit,
 ) {
     val state by player.state.collectAsState()
     val episode = state.episode ?: return
-    var optionsExpanded by remember { mutableStateOf(false) }
     var speedExpanded by remember { mutableStateOf(false) }
     var sleepExpanded by remember { mutableStateOf(false) }
     val playerMotion = rememberInfiniteTransition(label = "player motion")
@@ -149,23 +144,6 @@ fun PlayerScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.KeyboardArrowDown, "Collapse player", Modifier.size(32.dp))
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { optionsExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, "Player options")
-                        }
-                        DropdownMenu(expanded = optionsExpanded, onDismissRequest = { optionsExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text(if (darkTheme) "Use light theme" else "Use dark theme") },
-                                leadingIcon = { Icon(if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, null) },
-                                onClick = {
-                                    optionsExpanded = false
-                                    onToggleTheme()
-                                },
-                            )
-                        }
                     }
                 },
             )

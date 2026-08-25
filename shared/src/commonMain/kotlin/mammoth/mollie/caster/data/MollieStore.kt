@@ -47,6 +47,7 @@ import mammoth.mollie.caster.model.PlaybackHistory
 import mammoth.mollie.caster.model.LocalAudioFile
 import mammoth.mollie.caster.model.LocalPlaylist
 import mammoth.mollie.caster.model.sortedByFileName
+import mammoth.mollie.caster.model.sortedByPlaylistName
 import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategory
 import mammoth.mollie.caster.model.PodcastId
@@ -443,11 +444,11 @@ class MollieStore(
     /** Stores selected-file references; platforms report playback errors if a file is later moved or revoked. */
     fun addLocalPlaylist(playlist: LocalPlaylist) {
         val sortedPlaylist = playlist.copy(files = playlist.files.sortedByFileName())
-        mutableState.update { it.copy(localPlaylists = it.localPlaylists + sortedPlaylist) }
+        mutableState.update { it.copy(localPlaylists = (it.localPlaylists + sortedPlaylist).sortedByPlaylistName()) }
         database?.let { db -> scope.launch {
             runCatching {
                 db.localPlaylistDao().add(
-                    LocalPlaylistEntity(sortedPlaylist.id, sortedPlaylist.name, clock()),
+                    LocalPlaylistEntity(sortedPlaylist.id, sortedPlaylist.name, clock(), sortedPlaylist.isPinned),
                     sortedPlaylist.files.mapIndexed { position, file ->
                         LocalPlaylistItemEntity(sortedPlaylist.id, position, file.source, file.displayName, file.mimeType)
                     },
@@ -465,6 +466,21 @@ class MollieStore(
 
     fun renameLocalPlaylist(playlistId: String, name: String) = updateLocalPlaylist(playlistId) { it.copy(name = name) }
 
+    fun setLocalPlaylistPinned(playlistId: String, pinned: Boolean) {
+        val original = state.value.localPlaylists.firstOrNull { it.id == playlistId } ?: return
+        val updated = original.copy(isPinned = pinned)
+        mutableState.update { current ->
+            current.copy(localPlaylists = current.localPlaylists.map { if (it.id == playlistId) updated else it }.sortedByPlaylistName())
+        }
+        database?.let { db -> scope.launch {
+            runCatching { db.localPlaylistDao().setPinned(playlistId, pinned) }.onFailure { error ->
+                mutableState.update { current ->
+                    current.copy(localPlaylists = current.localPlaylists.map { if (it.id == playlistId) original else it }.sortedByPlaylistName(), message = error.message ?: "Could not update playlist pin")
+                }
+            }
+        } }
+    }
+
     fun addLocalPlaylistFiles(playlistId: String, files: List<LocalAudioFile>) =
         updateLocalPlaylist(playlistId) { playlist ->
             playlist.copy(files = (playlist.files + files).sortedByFileName())
@@ -474,13 +490,18 @@ class MollieStore(
         playlist.copy(files = playlist.files.filterIndexed { position, _ -> position != index })
     }
 
+    fun moveLocalPlaylistFile(playlistId: String, fromIndex: Int, toIndex: Int) = updateLocalPlaylist(playlistId) { playlist ->
+        if (fromIndex !in playlist.files.indices || toIndex !in playlist.files.indices || fromIndex == toIndex) return@updateLocalPlaylist playlist
+        playlist.copy(files = playlist.files.toMutableList().apply { add(toIndex, removeAt(fromIndex)) })
+    }
+
     fun deleteLocalPlaylist(playlistId: String) {
         val original = state.value.localPlaylists.firstOrNull { it.id == playlistId } ?: return
         mutableState.update { it.copy(localPlaylists = it.localPlaylists.filterNot { playlist -> playlist.id == playlistId }) }
         database?.let { db -> scope.launch {
             runCatching { db.localPlaylistDao().delete(playlistId) }.onFailure { error ->
                 mutableState.update { current ->
-                    current.copy(localPlaylists = current.localPlaylists + original, message = error.message ?: "Could not delete local playlist")
+                    current.copy(localPlaylists = (current.localPlaylists + original).sortedByPlaylistName(), message = error.message ?: "Could not delete local playlist")
                 }
             }
         } }
@@ -490,7 +511,7 @@ class MollieStore(
         val original = state.value.localPlaylists.firstOrNull { it.id == playlistId } ?: return
         val updated = transform(original)
         mutableState.update { current ->
-            current.copy(localPlaylists = current.localPlaylists.map { if (it.id == playlistId) updated else it })
+            current.copy(localPlaylists = current.localPlaylists.map { if (it.id == playlistId) updated else it }.sortedByPlaylistName())
         }
         database?.let { db -> scope.launch {
             runCatching {
@@ -504,7 +525,7 @@ class MollieStore(
             }.onFailure { error ->
                 mutableState.update { current ->
                     current.copy(
-                        localPlaylists = current.localPlaylists.map { if (it.id == playlistId) original else it },
+                        localPlaylists = current.localPlaylists.map { if (it.id == playlistId) original else it }.sortedByPlaylistName(),
                         message = error.message ?: "Could not update local playlist",
                     )
                 }
@@ -608,17 +629,18 @@ class MollieStore(
             LocalPlaylist(
                 id = playlist.playlistId,
                 name = playlist.name,
+                isPinned = playlist.isPinned,
                 files = localPlaylistItems[playlist.playlistId].orEmpty().map { item ->
                     LocalAudioFile(item.source, item.displayName, item.mimeType)
                 },
             )
-        }
+        }.sortedByPlaylistName()
         val subscriptions = db.userDataDao().allSubscriptions().map { it.podcastId }.toSet()
         val categoryNames = db.categoryDao().allCategories().associate { it.categoryKey to it.displayName }
         val categoryMappings = db.categoryDao().allMappings().groupBy { it.podcastId }
         val podcasts = db.podcastDao().allPodcasts().map { entity ->
             val categories = categoryMappings[entity.podcastId].orEmpty().map { mapping ->
-                mammoth.mollie.caster.model.PodcastCategory(mapping.canonicalCategoryKey, categoryNames[mapping.canonicalCategoryKey] ?: mapping.sourceName)
+                PodcastCategory(mapping.canonicalCategoryKey, categoryNames[mapping.canonicalCategoryKey] ?: mapping.sourceName)
             }
             entity.toModel(entity.podcastId in subscriptions, categories)
         }
@@ -667,7 +689,7 @@ private fun Episode.toEntity() = EpisodeEntity(
     publishedAtMillis, durationMillis, artworkUrl, seasonNumber, episodeNumber, episodeType, isExplicit, null,
 )
 
-private fun PodcastEntity.toModel(subscribed: Boolean, categories: List<mammoth.mollie.caster.model.PodcastCategory>) = Podcast(
+private fun PodcastEntity.toModel(subscribed: Boolean, categories: List<PodcastCategory>) = Podcast(
     PodcastId(podcastId), feedUrl, canonicalFeedUrl, websiteUrl, title, author, description, artworkUrl,
     language, copyright, isExplicit, categories = categories, episodeCount = episodeCount, latestEpisodeAtMillis = latestEpisodeAt,
     isSubscribed = subscribed, lastRefreshAtMillis = lastRefreshAt,
