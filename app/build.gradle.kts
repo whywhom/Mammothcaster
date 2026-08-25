@@ -1,5 +1,8 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
+import org.gradle.jvm.toolchain.JvmVendorSpec
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -8,13 +11,62 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
 }
 
+// Android Studio's bundled JBR can compile the project but does not include
+// jpackage. Resolve a complete JDK only when a native desktop package is asked
+// for, and still permit a release machine to provide a specific JDK explicitly.
+val desktopPackagingTaskNames = setOf(
+    "checkRuntime",
+    "suggestRuntimeModules",
+    "createRuntimeImage",
+    "createDistributable",
+    "runDistributable",
+    "packageDistributionForCurrentOS",
+    "packageDmg",
+    "packageMsi",
+    "packageDeb",
+    "packageReleaseDmg",
+    "packageReleaseMsi",
+    "packageReleaseDeb",
+    "notarizeDmg",
+)
+val desktopPackagingRequested = gradle.startParameter.taskNames.any { task ->
+    val name = task.substringAfterLast(':')
+    name in desktopPackagingTaskNames ||
+        (name.startsWith("package") && listOf("Dmg", "Msi", "Deb", "DistributionForCurrentOS").any(name::endsWith)) ||
+        (name.startsWith("notarize") && name.endsWith("Dmg"))
+}
+val desktopPackagingJavaHome = if (desktopPackagingRequested) {
+    providers.gradleProperty("molliecaster.desktop.javaHome").orNull
+        ?: extensions.getByType(JavaToolchainService::class.java)
+            .compilerFor {
+                languageVersion.set(JavaLanguageVersion.of(21))
+                vendor.set(JvmVendorSpec.ADOPTIUM)
+            }
+            .get()
+            .metadata
+            .installationPath
+            .asFile
+            .absolutePath
+} else {
+    null
+}
+
 compose.desktop {
     application {
         mainClass = "mammoth.mollie.caster.MainKt"
+        desktopPackagingJavaHome?.let { javaHome = it }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Molliecaster"
             packageVersion = "1.0.2"
+            // The desktop download gateway uses java.net.http.HttpClient at app startup.
+            // jpackage's default trimmed image omits this module unless it is explicit.
+            modules("java.net.http")
+        }
+        buildTypes.release.proguard {
+            // Room finds MollieDatabase_Impl and Ktor finds its CIO engine at runtime.
+            // Keep their reflective entry points when preparing a shrinked release bundle.
+            configurationFiles.from(project(":shared").file("proguard-rules.pro"))
         }
     }
 }

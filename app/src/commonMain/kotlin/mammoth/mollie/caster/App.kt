@@ -74,6 +74,7 @@ import molliecaster.shared.generated.resources.more_actions
 import molliecaster.shared.generated.resources.opml_import_export
 import molliecaster.shared.generated.resources.refresh
 import molliecaster.shared.generated.resources.search
+import molliecaster.shared.generated.resources.search_results
 import molliecaster.shared.generated.resources.settings
 
 private enum class Destination { Home, Search, Library, Settings }
@@ -130,7 +131,7 @@ fun MolliecasterApp(
     val toolbarTitle = when (destination) {
         Destination.Search -> when {
             selectedSearchCategory != null -> localizedCategoryName(selectedSearchCategory!!)
-            searchResultsVisible -> "Search results"
+            searchResultsVisible -> stringResource(Res.string.search_results)
             else -> destinationLabel(destination)
         }
         Destination.Library -> when {

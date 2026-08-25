@@ -55,14 +55,7 @@ import mammoth.mollie.caster.ui.format.formatDuration
 import mammoth.mollie.caster.ui.localization.localizedCategoryName
 import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
-import molliecaster.shared.generated.resources.Res
-import molliecaster.shared.generated.resources.browse_categories
-import molliecaster.shared.generated.resources.latest_episodes
-import molliecaster.shared.generated.resources.latest_podcasts
-import molliecaster.shared.generated.resources.loading_popular_podcasts
-import molliecaster.shared.generated.resources.popular_podcasts
-import molliecaster.shared.generated.resources.recommended_for_you
-import molliecaster.shared.generated.resources.todays_resonance
+import molliecaster.shared.generated.resources.*
 
 @Composable
 fun HomeScreen(
@@ -108,7 +101,7 @@ private fun EmptyLibraryHome(
             }
         }
         if (state.popularPodcasts.isNotEmpty()) item { PodcastShelf(stringResource(Res.string.popular_podcasts), state.popularPodcasts, onPodcast) }
-        if (!state.discoveryLoading && state.popularPodcasts.isEmpty()) item { EmptyHint("Popular podcasts are unavailable right now. Try again shortly.") }
+        if (!state.discoveryLoading && state.popularPodcasts.isEmpty()) item { EmptyHint(stringResource(Res.string.popular_unavailable)) }
     }
 }
 
@@ -190,7 +183,7 @@ private fun PopulatedLibraryHome(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SectionTitle(stringResource(Res.string.latest_episodes))
-                if (latestEpisodes.isEmpty()) EmptyHint("No episodes were published in the past 7 days.")
+                if (latestEpisodes.isEmpty()) EmptyHint(stringResource(Res.string.recent_episodes_empty))
             }
         }
         items(latestEpisodes, key = { it.id.value }) { episode ->
@@ -213,7 +206,7 @@ private fun LocalPlaylistShelf(
     onPlay: (LocalPlaylist, Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionTitle("Your local audio")
+        SectionTitle(stringResource(Res.string.your_local_audio))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(playlists.take(8), key = { it.id }) { playlist ->
                 Surface(
@@ -225,10 +218,10 @@ private fun LocalPlaylistShelf(
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Default.PlayArrow, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
                         Text(playlist.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${playlist.files.size} ${if (playlist.files.size == 1) "track" else "tracks"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(Res.string.tracks_on_device, playlist.files.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Play", modifier = Modifier.clickable(enabled = playlist.files.isNotEmpty()) { onPlay(playlist, false) }.padding(6.dp), color = MaterialTheme.colorScheme.primary)
-                            Text("Shuffle", modifier = Modifier.clickable(enabled = playlist.files.isNotEmpty()) { onPlay(playlist, true) }.padding(6.dp), color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.play), modifier = Modifier.clickable(enabled = playlist.files.isNotEmpty()) { onPlay(playlist, false) }.padding(6.dp), color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.shuffle), modifier = Modifier.clickable(enabled = playlist.files.isNotEmpty()) { onPlay(playlist, true) }.padding(6.dp), color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -254,8 +247,8 @@ private fun PopularPodcastSearch(
             Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Search podcasts", style = MaterialTheme.typography.titleMedium)
-                Text("Find a show from Apple Podcasts", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.search_podcasts), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(Res.string.find_show_from_apple), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -296,7 +289,7 @@ private fun LatestEpisodeRow(
                 }
             }
             IconButton(onClick = onPlay) {
-                Icon(Icons.Default.PlayArrow, "Play ${episode.title}", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.PlayArrow, stringResource(Res.string.play_named, episode.title), tint = MaterialTheme.colorScheme.primary)
             }
         }
     }

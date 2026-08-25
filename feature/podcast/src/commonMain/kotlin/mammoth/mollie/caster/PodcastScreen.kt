@@ -60,30 +60,7 @@ import mammoth.mollie.caster.ui.components.PodcastArtwork
 import mammoth.mollie.caster.ui.format.formatDate
 import mammoth.mollie.caster.ui.format.formatDuration
 import mammoth.mollie.caster.ui.theme.AetherTheme
-import molliecaster.shared.generated.resources.Res
-import molliecaster.shared.generated.resources.back
-import molliecaster.shared.generated.resources.cancel
-import molliecaster.shared.generated.resources.cancel_download
-import molliecaster.shared.generated.resources.cancel_download_progress
-import molliecaster.shared.generated.resources.cancel_queued_download
-import molliecaster.shared.generated.resources.clear_failed_download
-import molliecaster.shared.generated.resources.delete_downloaded_episode
-import molliecaster.shared.generated.resources.download_anyway
-import molliecaster.shared.generated.resources.download_episode
-import molliecaster.shared.generated.resources.download_without_wifi
-import molliecaster.shared.generated.resources.episode
-import molliecaster.shared.generated.resources.episode_count
-import molliecaster.shared.generated.resources.failed
-import molliecaster.shared.generated.resources.loading_rss_preview
-import molliecaster.shared.generated.resources.mobile_download_warning
-import molliecaster.shared.generated.resources.newest
-import molliecaster.shared.generated.resources.oldest
-import molliecaster.shared.generated.resources.play
-import molliecaster.shared.generated.resources.removing_downloaded_episode
-import molliecaster.shared.generated.resources.subscribe
-import molliecaster.shared.generated.resources.subscribed
-import molliecaster.shared.generated.resources.sync_feed
-import molliecaster.shared.generated.resources.syncing
+import molliecaster.shared.generated.resources.*
 import mammoth.mollie.caster.ui.localization.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,7 +95,7 @@ fun PodcastDetails(
                     actionIconContentColor = Color.Unspecified
                 ),
                 title = { Text(displayedPodcast.title, maxLines = 1) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back)) } },
             )
         },
     ) { padding ->
@@ -131,7 +108,7 @@ fun PodcastDetails(
                         Text(displayedPodcast.title, style = MaterialTheme.typography.headlineMedium)
                         Text(displayedPodcast.author, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(stringResource(Res.string.episode_count, episodes.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
-                        displayedPodcast.latestEpisodeAtMillis?.let { Text("Latest update ${formatDate(it)}", style = MaterialTheme.typography.bodySmall) }
+                        displayedPodcast.latestEpisodeAtMillis?.let { Text(stringResource(Res.string.latest_update, formatDate(it).orEmpty()), style = MaterialTheme.typography.bodySmall) }
                         Button(
                             enabled = !state.busy,
                             shape = RoundedCornerShape(24.dp),
@@ -184,11 +161,11 @@ fun EpisodeRow(
             )
             Text(episode.summary, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onPlay(episode) }) { Icon(Icons.Default.PlayArrow, "Play ${episode.title}") }
+                IconButton(onClick = { onPlay(episode) }) { Icon(Icons.Default.PlayArrow, stringResource(Res.string.play_named, episode.title)) }
                 val isSubscribedPodcast = state.podcasts.any { it.id == episode.podcastId && it.isSubscribed }
                 if (store != null && isSubscribedPodcast) {
                     val favorite = episode.id in state.favoriteIds
-                    IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) { Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite") }
+                    IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) { Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) stringResource(Res.string.remove_favorite) else stringResource(Res.string.favorite)) }
                 }
                 if (store != null) {
                     val download = state.downloads.firstOrNull { it.episodeId == episode.id }
@@ -250,7 +227,7 @@ fun EpisodeDetails(
                     Spacer(Modifier.width(20.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(episode.title, style = MaterialTheme.typography.headlineMedium)
-                        Text(podcast?.title ?: episode.author.ifBlank { "Podcast episode" }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(podcast?.title ?: episode.author.ifBlank { stringResource(Res.string.podcast_episode) }, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(listOfNotNull(formatDate(episode.publishedAtMillis), episode.durationMillis?.let(::formatDuration)).joinToString(" • "))
                     }
                 }
@@ -263,7 +240,7 @@ fun EpisodeDetails(
                     Button(onClick = { onPlay(episode) }, shape = RoundedCornerShape(24.dp)) { Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(stringResource(Res.string.play)) }
                     if (podcast?.isSubscribed == true) {
                         IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) {
-                            Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite")
+                            Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) stringResource(Res.string.remove_favorite) else stringResource(Res.string.favorite))
                         }
                     }
                     DownloadAction(

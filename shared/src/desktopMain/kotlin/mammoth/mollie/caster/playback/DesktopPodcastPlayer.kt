@@ -79,6 +79,9 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
     override fun close() {
         scope.cancel()
         onFx { player?.dispose(); player = null }
+        // JavaFX Media owns a separate runtime. Stop it explicitly so it cannot
+        // keep the macOS application process alive after Compose exits.
+        runCatching { Platform.exit() }
     }
 
     private fun publish(endedStatus: PlayerStatus? = null) {

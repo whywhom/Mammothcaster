@@ -77,10 +77,7 @@ import mammoth.mollie.caster.ui.format.formatDuration
 import mammoth.mollie.caster.ui.format.formatPlaybackSpeed
 import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
-import molliecaster.shared.generated.resources.Res
-import molliecaster.shared.generated.resources.now_playing
-import molliecaster.shared.generated.resources.pause
-import molliecaster.shared.generated.resources.play
+import molliecaster.shared.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,12 +125,12 @@ fun PlayerScreen(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            "NOW PLAYING",
+                            stringResource(Res.string.now_playing),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Text(
-                            podcastTitle.ifBlank { episode.author.ifBlank { "Podcast episode" } },
+                            podcastTitle.ifBlank { episode.author.ifBlank { stringResource(Res.string.podcast_episode) } },
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1,
@@ -143,7 +140,7 @@ fun PlayerScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.KeyboardArrowDown, "Collapse player", Modifier.size(32.dp))
+                        Icon(Icons.Default.KeyboardArrowDown, stringResource(Res.string.collapse_player), Modifier.size(32.dp))
                     }
                 },
             )
@@ -192,7 +189,7 @@ fun PlayerScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    episode.author.ifBlank { podcastTitle.ifBlank { "Podcast episode" } },
+                    episode.author.ifBlank { podcastTitle.ifBlank { stringResource(Res.string.podcast_episode) } },
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
@@ -209,7 +206,7 @@ fun PlayerScreen(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         Text(
-                            state.errorMessage ?: "Audio playback is not available on this platform yet.",
+                            state.errorMessage ?: stringResource(Res.string.audio_playback_unavailable),
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (state.errorMessage != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -242,7 +239,7 @@ fun PlayerScreen(
                         modifier = Modifier.size(58.dp),
                         enabled = playbackEnabled && !playbackLoading,
                         onClick = { player.skipBy(-15_000) },
-                    ) { Icon(Icons.Default.FastRewind, "Back 15 seconds", Modifier.size(36.dp)) }
+                    ) { Icon(Icons.Default.FastRewind, stringResource(Res.string.back_15_seconds), Modifier.size(36.dp)) }
                     Box(
                         modifier = Modifier.size(84.dp).graphicsLayer {
                             if (state.isPlaying) {
@@ -274,14 +271,14 @@ fun PlayerScreen(
                         modifier = Modifier.size(58.dp),
                         enabled = playbackEnabled && !playbackLoading,
                         onClick = { player.skipBy(15_000) },
-                    ) { Icon(Icons.Default.FastForward, "Forward 15 seconds", Modifier.size(36.dp)) }
+                    ) { Icon(Icons.Default.FastForward, stringResource(Res.string.forward_15_seconds), Modifier.size(36.dp)) }
                 }
 
                 Spacer(Modifier.height(28.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Box {
                         PlayerUtilityControl(
-                            label = "Speed",
+                            label = stringResource(Res.string.speed),
                             enabled = playbackEnabled && !playbackLoading,
                             onClick = { speedExpanded = true },
                         ) { color ->
@@ -303,7 +300,7 @@ fun PlayerScreen(
                     }
                     Box {
                         PlayerUtilityControl(
-                            label = "Sleep",
+                            label = stringResource(Res.string.sleep),
                             enabled = playbackEnabled && !playbackLoading,
                             active = state.sleepTimerEndsAtMillis != null,
                             onClick = { sleepExpanded = true },
@@ -311,7 +308,7 @@ fun PlayerScreen(
                         DropdownMenu(expanded = sleepExpanded, onDismissRequest = { sleepExpanded = false }) {
                             listOf(15, 30, 60).forEach { minutes ->
                                 DropdownMenuItem(
-                                    text = { Text("$minutes minutes") },
+                                    text = { Text(stringResource(Res.string.minutes, minutes)) },
                                     onClick = {
                                         player.setSleepTimer(minutes)
                                         sleepExpanded = false
@@ -320,7 +317,7 @@ fun PlayerScreen(
                             }
                             if (state.sleepTimerEndsAtMillis != null) {
                                 DropdownMenuItem(
-                                    text = { Text("Turn off sleep timer") },
+                                    text = { Text(stringResource(Res.string.turn_off_sleep_timer)) },
                                     onClick = {
                                         player.setSleepTimer(null)
                                         sleepExpanded = false
@@ -329,18 +326,18 @@ fun PlayerScreen(
                             }
                         }
                     }
-                    PlayerUtilityControl(label = "Chapters", enabled = false, onClick = {}) { color ->
-                        Icon(Icons.AutoMirrored.Filled.ViewList, "Chapters unavailable", tint = color)
+                    PlayerUtilityControl(label = stringResource(Res.string.chapters), enabled = false, onClick = {}) { color ->
+                        Icon(Icons.AutoMirrored.Filled.ViewList, stringResource(Res.string.chapters_unavailable), tint = color)
                     }
-                    PlayerUtilityControl(label = "Share", enabled = false, onClick = {}) { color ->
-                        Icon(Icons.Default.Share, "Sharing unavailable", tint = color)
+                    PlayerUtilityControl(label = stringResource(Res.string.share), enabled = false, onClick = {}) { color ->
+                        Icon(Icons.Default.Share, stringResource(Res.string.sharing_unavailable), tint = color)
                     }
                 }
 
                 Spacer(Modifier.height(32.dp))
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    IconButton(enabled = false, onClick = {}) { Icon(Icons.Default.Cast, "Audio routing unavailable") }
-                    IconButton(enabled = false, onClick = {}) { Icon(Icons.AutoMirrored.Filled.QueueMusic, "Queue unavailable") }
+                    IconButton(enabled = false, onClick = {}) { Icon(Icons.Default.Cast, stringResource(Res.string.audio_routing_unavailable)) }
+                    IconButton(enabled = false, onClick = {}) { Icon(Icons.AutoMirrored.Filled.QueueMusic, stringResource(Res.string.queue_unavailable)) }
                 }
                 Spacer(Modifier.height(12.dp))
             }
@@ -376,7 +373,7 @@ fun PlayerVinylArtwork(
             } else {
                 AsyncImage(
                     model = episode.artworkUrl,
-                    contentDescription = "${episode.title} cover",
+                    contentDescription = stringResource(Res.string.cover, episode.title),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )

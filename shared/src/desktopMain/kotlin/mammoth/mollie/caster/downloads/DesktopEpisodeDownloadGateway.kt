@@ -196,10 +196,14 @@ class DesktopEpisodeDownloadGateway : EpisodeDownloadGateway, AutoCloseable {
     private fun encode(value: String): String = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray())
     private fun decode(value: String): String = String(Base64.getUrlDecoder().decode(value))
 
-    private fun downloadsRoot(): Path = Path.of(System.getProperty("user.home"), "Downloads", "Molliecaster")
+    private fun downloadsRoot(): Path = when {
+        isMacOs() -> Path.of(System.getProperty("user.home"), "Library", "Application Support", "Molliecaster", "Downloads")
+        else -> Path.of(System.getProperty("user.home"), "Downloads", "Molliecaster")
+    }
+    private fun isMacOs(): Boolean = System.getProperty("os.name").startsWith("Mac", ignoreCase = true)
     private fun applicationDataRoot(): Path = Path.of(System.getProperty("user.home"), ".molliecaster")
     private fun applicationCacheRoot(): Path = when {
-        System.getProperty("os.name").startsWith("Mac", ignoreCase = true) -> Path.of(System.getProperty("user.home"), "Library", "Caches", "Molliecaster")
+        isMacOs() -> Path.of(System.getProperty("user.home"), "Library", "Caches", "Molliecaster")
         System.getenv("LOCALAPPDATA") != null -> Path.of(System.getenv("LOCALAPPDATA"), "Molliecaster", "Cache")
         else -> Path.of(System.getenv("XDG_CACHE_HOME") ?: Path.of(System.getProperty("user.home"), ".cache").toString(), "molliecaster")
     }

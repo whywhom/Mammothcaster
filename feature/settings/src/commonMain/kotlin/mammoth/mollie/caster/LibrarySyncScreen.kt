@@ -65,6 +65,7 @@ import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.opml.rememberOpmlFileTransfer
 import mammoth.mollie.caster.ui.theme.AetherTheme
 import molliecaster.shared.generated.resources.Res
+import molliecaster.shared.generated.resources.back
 import molliecaster.shared.generated.resources.data_management
 import molliecaster.shared.generated.resources.export_library
 import molliecaster.shared.generated.resources.export_opml
@@ -136,7 +137,7 @@ fun LibrarySyncScreen(
                 title = { Text(stringResource(Res.string.settings), style = MaterialTheme.typography.headlineSmall) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -167,7 +168,7 @@ fun LibrarySyncScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Sync,
-                                contentDescription = if (importing) "Importing OPML" else null,
+                                contentDescription = if (importing) stringResource(Res.string.importing_subscriptions) else null,
                                 modifier = Modifier.size(36.dp).graphicsLayer { rotationZ = if (importing) syncRotation else 0f },
                                 tint = MaterialTheme.colorScheme.primary,
                             )

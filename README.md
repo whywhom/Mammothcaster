@@ -20,7 +20,7 @@ Molliecaster is a Compose Multiplatform podcast client migrated from the product
 | Local persistence | Room + bundled SQLite | Room + bundled SQLite | Room + bundled SQLite | In-memory until SQLite Web Worker wiring is added |
 | Audio engine | Media3 | AVPlayer | JavaFX Media | HTMLAudio |
 | System playback controls | Media session, notification, lock screen | AVAudioSession, background audio, lock-screen/Control Center Now Playing and play/pause controls | Media-key support pending | Browser-managed background playback; Media Session metadata pending |
-| Downloads | Media3 + public Downloads export | Application Support | User Downloads folder | Origin Cache Storage + browser save |
+| Downloads | Media3 + public Downloads export | Application Support | Application Support/Molliecaster/Downloads | Origin Cache Storage + browser save |
 | Local-audio playlists | Multi-file picker and playback | Multi-file picker and playback | Multi-file picker and playback | Browser file picker and playback |
 | Transparent stream cache | 5 GB Media3 LRU | Pending | Pending | Pending |
 

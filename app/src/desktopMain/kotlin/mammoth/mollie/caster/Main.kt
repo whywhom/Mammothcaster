@@ -8,6 +8,7 @@ import mammoth.mollie.caster.data.database.databaseBuilder
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
 import mammoth.mollie.caster.playback.DesktopPodcastPlayer
 import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
+import kotlin.system.exitProcess
 
 fun main() {
     val proxyUrl = System.getenv("MOLLIE_PODCAST_INDEX_PROXY_URL").orEmpty().trim()
@@ -25,7 +26,19 @@ fun main() {
     )
     val player = DesktopPodcastPlayer(downloads)
     application {
-        Window(onCloseRequest = { player.close(); downloads.close(); exitApplication() }, title = "悦播客") {
+        Window(
+            onCloseRequest = {
+                // Closing an engine after its event loop has already stopped can throw.
+                // Cleanup must never prevent the user-requested application termination.
+                runCatching { player.close() }
+                runCatching { downloads.close() }
+                runCatching { exitApplication() }
+                // Compose and JavaFX each own desktop event loops. Terminate after their
+                // cleanup so the macOS close button cannot leave a background process alive.
+                exitProcess(0)
+            },
+            title = "悦播客",
+        ) {
             MolliecasterApp(store = store, player = player)
         }
     }
