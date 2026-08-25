@@ -96,6 +96,7 @@ class MollieStore(
         scope.launch {
             val localDatabase = database
             if (localDatabase != null) restore(localDatabase)
+            mutableState.update { it.copy(restored = true) }
             scope.launch { collectDownloadSnapshots() }
             scope.launch { downloadGateway.cellularDownloadsAllowed.collect { allowed ->
                 mutableState.update { it.copy(cellularDownloadsAllowed = allowed) }
@@ -393,42 +394,47 @@ class MollieStore(
     fun setCellularDownloadsAllowed(allowed: Boolean) = downloadGateway.setCellularDownloadsAllowed(allowed)
 
     fun recordPlayback(episode: Episode, positionMillis: Long, durationMillis: Long) {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            persistPlayback(episode, positionMillis, durationMillis)
+        }
+    }
+
+    /** Persists the final player snapshot before a desktop process terminates. */
+    suspend fun persistPlayback(episode: Episode, positionMillis: Long, durationMillis: Long) {
         // Local-playlist tracks are file references, not RSS episode rows. Keep their current-session
         // history visible, but never insert them into playback_history's episode foreign key.
         val hasPersistedEpisode = state.value.episodes.any { it.id == episode.id }
-        scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playbackWriteMutex.withLock {
-                val now = nextPlaybackTimestamp()
-                val clampedPosition = positionMillis.coerceIn(0, durationMillis.takeIf { it > 0 } ?: Long.MAX_VALUE)
-                var persistedRecord: PlaybackHistory? = null
-                mutableState.update { value ->
-                    val previous = value.history.firstOrNull { it.episodeId == episode.id }
-                    val sampleDelta = previous?.let { (clampedPosition - it.positionMillis).coerceIn(0, 10_000) } ?: 0
-                    val completed = durationMillis > 0 && clampedPosition * 100 >= durationMillis * 95
-                    val record = PlaybackHistory(
-                        episode.id, now, clampedPosition, durationMillis.takeIf { it > 0 },
-                        (previous?.totalPlayedMillis ?: 0) + sampleDelta, completed,
+        playbackWriteMutex.withLock {
+            val now = nextPlaybackTimestamp()
+            val clampedPosition = positionMillis.coerceIn(0, durationMillis.takeIf { it > 0 } ?: Long.MAX_VALUE)
+            var persistedRecord: PlaybackHistory? = null
+            mutableState.update { value ->
+                val previous = value.history.firstOrNull { it.episodeId == episode.id }
+                val sampleDelta = previous?.let { (clampedPosition - it.positionMillis).coerceIn(0, 10_000) } ?: 0
+                val completed = durationMillis > 0 && clampedPosition * 100 >= durationMillis * 95
+                val record = PlaybackHistory(
+                    episode.id, now, clampedPosition, durationMillis.takeIf { it > 0 },
+                    (previous?.totalPlayedMillis ?: 0) + sampleDelta, completed,
+                )
+                persistedRecord = record
+                value.copy(history = listOf(record) + value.history.filterNot { it.episodeId == episode.id })
+            }
+            val record = persistedRecord ?: return@withLock
+            if (hasPersistedEpisode) {
+                runCatching {
+                    database?.userDataDao()?.recordPlayback(
+                        episodeId = episode.id.value,
+                        lastPlayedAt = now,
+                        positionMs = record.positionMillis,
+                        durationMs = durationMillis.takeIf { it > 0 },
+                        totalPlayedMs = record.totalPlayedMillis,
+                        completed = record.completed,
+                        completedAt = now.takeIf { record.completed },
+                        updatedAt = now,
                     )
-                    persistedRecord = record
-                    value.copy(history = listOf(record) + value.history.filterNot { it.episodeId == episode.id })
-                }
-                val record = persistedRecord ?: return@withLock
-                if (hasPersistedEpisode) {
-                    runCatching {
-                        database?.userDataDao()?.recordPlayback(
-                            episodeId = episode.id.value,
-                            lastPlayedAt = now,
-                            positionMs = record.positionMillis,
-                            durationMs = durationMillis.takeIf { it > 0 },
-                            totalPlayedMs = record.totalPlayedMillis,
-                            completed = record.completed,
-                            completedAt = now.takeIf { record.completed },
-                            updatedAt = now,
-                        )
-                    }.onFailure {
-                        mutableState.update { current ->
-                            current.copy(message = "Could not save playback progress")
-                        }
+                }.onFailure {
+                    mutableState.update { current ->
+                        current.copy(message = "Could not save playback progress")
                     }
                 }
             }

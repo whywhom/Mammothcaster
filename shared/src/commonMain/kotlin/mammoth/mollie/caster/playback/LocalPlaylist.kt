@@ -91,6 +91,10 @@ class QueuedPodcastPlayer(
         mutableQueue.value = PlaybackQueue(listOf(episode), 0)
         delegate.play(episode)
     }
+    override fun prepare(episode: Episode) {
+        mutableQueue.value = PlaybackQueue(listOf(episode), 0)
+        delegate.prepare(episode)
+    }
     override fun toggle() = delegate.toggle()
     override fun seekTo(positionMillis: Long) = delegate.seekTo(positionMillis)
     override fun skipBy(deltaMillis: Long) = delegate.skipBy(deltaMillis)

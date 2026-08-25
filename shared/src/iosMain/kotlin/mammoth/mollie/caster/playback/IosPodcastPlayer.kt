@@ -43,6 +43,7 @@ import platform.MediaPlayer.MPNowPlayingInfoPropertyElapsedPlaybackTime
 import platform.MediaPlayer.MPNowPlayingInfoPropertyPlaybackRate
 import platform.MediaPlayer.MPRemoteCommandCenter
 import platform.MediaPlayer.MPRemoteCommandHandlerStatusSuccess
+import kotlin.time.Duration.Companion.milliseconds
 
 /** AVPlayer/AVAudioSession adapter for iOS. Background audio entitlement remains an app-level setting. */
 @OptIn(ExperimentalForeignApi::class)
@@ -91,7 +92,7 @@ class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : Podc
         }
         scope.launch {
             while (isActive) {
-                delay(500)
+                delay(500.milliseconds)
                 val deadline = state.value.sleepTimerEndsAtMillis
                 if (deadline != null && currentTimeMillis() >= deadline) {
                     player.pause()
@@ -102,7 +103,11 @@ class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : Podc
         }
     }
 
-    override fun play(episode: Episode) {
+    override fun play(episode: Episode) = load(episode, autoPlay = true)
+
+    override fun prepare(episode: Episode) = load(episode, autoPlay = false)
+
+    private fun load(episode: Episode, autoPlay: Boolean) {
         val enclosure = episode.enclosures.firstOrNull()
             ?: return fail(episode, "This episode has no playable audio URL")
         validatePlayableMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
@@ -125,7 +130,7 @@ class IosPodcastPlayer(private val mediaFiles: IosEpisodeDownloadGateway) : Podc
         player.replaceCurrentItemWithPlayerItem(AVPlayerItem(uRL = url))
         player.defaultRate = speed
         if (episode.playbackPositionMillis > 0) player.seekToTime(CMTimeMakeWithSeconds(episode.playbackPositionMillis / 1000.0, 1_000))
-        player.playImmediatelyAtRate(speed)
+        if (autoPlay) player.playImmediatelyAtRate(speed)
         publish()
     }
 

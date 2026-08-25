@@ -8,6 +8,8 @@ import mammoth.mollie.caster.data.database.databaseBuilder
 import mammoth.mollie.caster.data.discovery.DiscoveryConfig
 import mammoth.mollie.caster.playback.DesktopPodcastPlayer
 import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
+import kotlinx.coroutines.runBlocking
+import mammoth.mollie.caster.playback.PlayerStatus
 import kotlin.system.exitProcess
 
 fun main() {
@@ -28,6 +30,17 @@ fun main() {
     application {
         Window(
             onCloseRequest = {
+                val finalState = player.state.value
+                finalState.episode
+                    ?.takeIf { finalState.positionMillis > 0 && finalState.status != PlayerStatus.Ended }
+                    ?.let { episode ->
+                        // The process exits immediately below, so wait for the final write.
+                        runCatching {
+                            runBlocking {
+                                store.persistPlayback(episode, finalState.positionMillis, finalState.durationMillis)
+                            }
+                        }
+                    }
                 // Closing an engine after its event loop has already stopped can throw.
                 // Cleanup must never prevent the user-requested application termination.
                 runCatching { player.close() }

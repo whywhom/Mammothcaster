@@ -106,6 +106,7 @@ fun MolliecasterApp(
     var addFeed by remember { mutableStateOf(false) }
     var librarySync by remember { mutableStateOf(false) }
     var settingsExpanded by remember { mutableStateOf(false) }
+    var playbackRestoreAttempted by remember { mutableStateOf(false) }
     val languagePreference = rememberAppLanguagePreference()
     var language by remember(languagePreference) { mutableStateOf(languagePreference.initialLanguage) }
     var initialHomeEntryHandled by remember { mutableStateOf(false) }
@@ -175,6 +176,18 @@ fun MolliecasterApp(
     LaunchedEffect(playerState.episode?.id, playerState.positionMillis / 5_000L, playerState.status) {
         playerState.episode?.takeIf { playerState.positionMillis > 0 }?.let { episode ->
             store.recordPlayback(episode, playerState.positionMillis, playerState.durationMillis)
+        }
+    }
+    // Restore the most recent unfinished episode only after the durable library has loaded.
+    // It is prepared, rather than played, so reopening the app never starts audio unexpectedly.
+    LaunchedEffect(library.restored, playbackRestoreAttempted, playerState.episode?.id) {
+        if (!playbackRestoreAttempted && library.restored && playerState.episode == null) {
+            playbackRestoreAttempted = true
+            val history = library.history.firstOrNull { !it.completed && it.positionMillis > 0 }
+            val episode = history?.let { record ->
+                library.episodes.firstOrNull { it.id == record.episodeId }
+            }
+            if (episode != null) queuedPlayer.prepare(episode)
         }
     }
 

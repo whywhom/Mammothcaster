@@ -437,42 +437,71 @@ private fun LocalPlaylistDetails(
                 color = AetherTheme.colors.glass,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
             ) {
-                Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Surface(modifier = Modifier.size(112.dp), shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                        Icon(Icons.Default.MusicNote, null, modifier = Modifier.padding(24.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Keep the playlist identity visible without returning to a large,
+                    // redundant hero image.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            modifier = Modifier.size(72.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                        ) {
+                            Icon(
+                                Icons.Default.MusicNote,
+                                null,
+                                modifier = Modifier.padding(16.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Text(
+                            playlist.name,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    Text(stringResource(Res.string.audio_files_count, playlist.files.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(onClick = onPlay, enabled = playlist.files.isNotEmpty()) { Text(stringResource(Res.string.play)) }
-                        OutlinedButton(onClick = onShuffle, enabled = playlist.files.isNotEmpty()) { Text(stringResource(Res.string.shuffle)) }
-                    }
-                    // Keep management actions on two rows. Four text buttons compete for
-                    // space on compact phones and make the final label wrap vertically.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Row(modifier = Modifier.fillMaxWidth()) {
                         TextButton(
                             onClick = { onSetPinned(!playlist.isPinned) },
                             modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
                         ) { Text(if (playlist.isPinned) stringResource(Res.string.unpin) else stringResource(Res.string.pin), maxLines = 1) }
                         TextButton(
                             onClick = { renaming = true },
                             modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
                         ) { Text(stringResource(Res.string.rename), maxLines = 1) }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
                         TextButton(
                             onClick = onAddAudio,
                             modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
                         ) { Text(stringResource(Res.string.add_audio), maxLines = 1) }
                         TextButton(
                             onClick = { confirmingDelete = true },
                             modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
                         ) { Text(stringResource(Res.string.delete), maxLines = 1) }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Button(
+                            onClick = onPlay,
+                            enabled = playlist.files.isNotEmpty(),
+                            modifier = Modifier.weight(1f),
+                        ) { Text(stringResource(Res.string.play)) }
+                        OutlinedButton(
+                            onClick = onShuffle,
+                            enabled = playlist.files.isNotEmpty(),
+                            modifier = Modifier.weight(1f),
+                        ) { Text(stringResource(Res.string.shuffle)) }
                     }
                 }
             }

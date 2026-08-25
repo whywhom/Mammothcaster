@@ -18,6 +18,7 @@ import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
 import mammoth.mollie.caster.data.cache.validatePlayableMedia
 import mammoth.mollie.caster.platform.currentTimeMillis
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration.Companion.milliseconds
 
 /** JavaFX Media adapter for JVM desktop. JavaFX supplies MP3/AAC streaming and seek support. */
 class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway) : PodcastPlayer, AutoCloseable {
@@ -30,7 +31,7 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
     init {
         scope.launch {
             while (isActive) {
-                delay(500)
+                delay(500.milliseconds)
                 onFx {
                     val deadline = state.value.sleepTimerEndsAtMillis
                     if (deadline != null && currentTimeMillis() >= deadline) {
@@ -43,7 +44,11 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
         }
     }
 
-    override fun play(episode: Episode) {
+    override fun play(episode: Episode) = load(episode, autoPlay = true)
+
+    override fun prepare(episode: Episode) = load(episode, autoPlay = false)
+
+    private fun load(episode: Episode, autoPlay: Boolean) {
         episode.enclosures.firstOrNull()?.let { enclosure ->
             validatePlayableMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
         }
@@ -58,8 +63,24 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
                     mediaPlayer.setOnReady {
                         val position = episode.playbackPositionMillis.toDouble()
                         if (position > 0) mediaPlayer.seek(javafx.util.Duration.millis(position))
-                        mediaPlayer.play()
-                        publish()
+                        if (autoPlay) {
+                            mediaPlayer.play()
+                            publish()
+                        } else {
+                            val duration = mediaPlayer.totalDuration.toMillis()
+                                .takeIf { it.isFinite() && it > 0 }
+                                ?.toLong()
+                                ?: 0L
+                            // JavaFX applies seek asynchronously. Keep the requested resume
+                            // position visible until its next engine callback confirms it.
+                            mutableState.value = mutableState.value.copy(
+                                status = PlayerStatus.Ready,
+                                isPlaying = false,
+                                positionMillis = episode.playbackPositionMillis,
+                                bufferedPositionMillis = duration,
+                                durationMillis = duration,
+                            )
+                        }
                     }
                     mediaPlayer.setOnPlaying { publish() }
                     mediaPlayer.setOnPaused { publish() }

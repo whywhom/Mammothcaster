@@ -28,6 +28,8 @@ interface PodcastPlayer {
     val state: StateFlow<PlayerState>
     val capabilities: PlayerCapabilities
     fun play(episode: Episode)
+    /** Loads an episode without starting it, for restoring the mini-player after relaunch. */
+    fun prepare(episode: Episode) = play(episode)
     fun toggle()
     fun seekTo(positionMillis: Long)
     fun skipBy(deltaMillis: Long)

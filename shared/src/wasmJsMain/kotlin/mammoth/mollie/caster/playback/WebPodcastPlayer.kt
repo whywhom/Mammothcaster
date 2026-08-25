@@ -9,11 +9,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import mammoth.mollie.caster.model.Episode
-import mammoth.mollie.caster.downloads.WebEpisodeDownloadGateway
 import mammoth.mollie.caster.data.cache.validatePlayableMedia
+import mammoth.mollie.caster.downloads.WebEpisodeDownloadGateway
+import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.platform.currentTimeMillis
 import org.w3c.dom.Audio
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Browser HTMLAudio adapter. Playback must be initiated from a user gesture. */
 class WebPodcastPlayer(private val mediaFiles: WebEpisodeDownloadGateway) : PodcastPlayer {
@@ -37,7 +38,7 @@ class WebPodcastPlayer(private val mediaFiles: WebEpisodeDownloadGateway) : Podc
         }
         scope.launch {
             while (isActive) {
-                delay(500)
+                delay(500.milliseconds)
                 val deadline = mutableState.value.sleepTimerEndsAtMillis ?: continue
                 if (currentTimeMillis() >= deadline) {
                     audio.pause()
@@ -47,7 +48,11 @@ class WebPodcastPlayer(private val mediaFiles: WebEpisodeDownloadGateway) : Podc
         }
     }
 
-    override fun play(episode: Episode) {
+    override fun play(episode: Episode) = load(episode, autoPlay = true)
+
+    override fun prepare(episode: Episode) = load(episode, autoPlay = false)
+
+    private fun load(episode: Episode, autoPlay: Boolean) {
         episode.enclosures.firstOrNull()?.let { enclosure ->
             validatePlayableMedia(episode.id.value, enclosure.url)?.let {
                 mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Failed, errorMessage = it)
@@ -63,7 +68,7 @@ class WebPodcastPlayer(private val mediaFiles: WebEpisodeDownloadGateway) : Podc
                 audio.src = source
                 audio.playbackRate = state.value.speed.toDouble()
                 audio.currentTime = episode.playbackPositionMillis / 1000.0
-                audio.play()
+                if (autoPlay) audio.play() else publish(PlayerStatus.Paused)
             } else mediaFiles.revoke(source)
         }
         if (!mediaFiles.isCached(episode)) {

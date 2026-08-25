@@ -30,6 +30,8 @@ data class LibraryState(
     val feedPreviewError: String? = null,
     val busy: Boolean = false,
     val message: String? = null,
+    /** True once durable subscriptions, episodes, and playback history have been read. */
+    val restored: Boolean = false,
 )
 data class OpmlImportReport(val imported: Int, val duplicates: Int, val failures: List<String>)
 data class DownloadSnapshot(val initialized: Boolean = false, val items: List<Download> = emptyList())

@@ -71,7 +71,11 @@ class AndroidPodcastPlayerAdapter(
         }
     }
 
-    override fun play(episode: Episode) {
+    override fun play(episode: Episode) = load(episode, playWhenReady = true)
+
+    override fun prepare(episode: Episode) = load(episode, playWhenReady = false)
+
+    private fun load(episode: Episode, playWhenReady: Boolean) {
         val enclosure = episode.enclosures.firstOrNull { it.mimeType?.startsWith("audio/") == true }
             ?: episode.enclosures.firstOrNull()
             ?: return
@@ -90,6 +94,7 @@ class AndroidPodcastPlayerAdapter(
                 resumePositionMillis = episode.playbackPositionMillis,
                 knownDurationMillis = episode.durationMillis,
             ),
+            playWhenReady = playWhenReady,
         )
     }
 

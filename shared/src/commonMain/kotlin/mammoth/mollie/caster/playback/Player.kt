@@ -10,6 +10,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mammoth.mollie.caster.model.Episode
 import mammoth.mollie.caster.platform.currentTimeMillis
+import kotlin.time.Duration.Companion.milliseconds
 
 /** A portable fallback used by desktop, iOS preview and web until their native adapters are attached. */
 class PreviewPodcastPlayer : PodcastPlayer {
@@ -21,7 +22,7 @@ class PreviewPodcastPlayer : PodcastPlayer {
     init {
         scope.launch {
             while (isActive) {
-                delay(500)
+                delay(500.milliseconds)
                 val value = mutableState.value
                 if (!value.isPlaying) continue
                 val timerExpired = value.sleepTimerEndsAtMillis?.let { it <= currentTimeMillis() } == true
@@ -35,13 +36,15 @@ class PreviewPodcastPlayer : PodcastPlayer {
         }
     }
 
-    override fun play(episode: Episode) {
+    override fun play(episode: Episode) = prepare(episode)
+
+    override fun prepare(episode: Episode) {
         mutableState.value = PlayerState(
             episode = episode,
             status = PlayerStatus.Idle,
             isPlaying = false,
             positionMillis = episode.playbackPositionMillis,
-            durationMillis = episode.durationMillis ?: 30 * 60 * 1000L,
+            durationMillis = episode.durationMillis ?: (30 * 60 * 1000L),
             speed = mutableState.value.speed,
         )
     }
