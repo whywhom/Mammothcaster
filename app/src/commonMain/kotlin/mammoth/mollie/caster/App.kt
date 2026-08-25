@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -41,7 +42,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -57,6 +57,7 @@ import mammoth.mollie.caster.playback.QueuedPodcastPlayer
 import mammoth.mollie.caster.ui.localaudio.rememberLocalAudioFilePicker
 import mammoth.mollie.caster.ui.dialogs.AddFeedDialog
 import mammoth.mollie.caster.ui.localization.LocalAppLanguage
+import mammoth.mollie.caster.ui.localization.localizedCategoryName
 import mammoth.mollie.caster.ui.localization.rememberAppLanguagePreference
 import mammoth.mollie.caster.ui.localization.stringResource
 import mammoth.mollie.caster.ui.theme.AetherTheme
@@ -65,6 +66,7 @@ import molliecaster.shared.generated.resources.Res
 import molliecaster.shared.generated.resources.add_rss_feed
 import molliecaster.shared.generated.resources.app_name
 import molliecaster.shared.generated.resources.audio_playback_unavailable
+import molliecaster.shared.generated.resources.back
 import molliecaster.shared.generated.resources.discovery_sources_unavailable
 import molliecaster.shared.generated.resources.home
 import molliecaster.shared.generated.resources.library
@@ -110,6 +112,39 @@ fun MolliecasterApp(
     val scope = rememberCoroutineScope()
     val audioPlaybackUnavailable = stringResource(Res.string.audio_playback_unavailable)
     val discoverySourcesUnavailable = stringResource(Res.string.discovery_sources_unavailable)
+    val toolbarBack: (() -> Unit)? = when (destination) {
+        Destination.Search -> when {
+            selectedSearchCategory != null -> ({ selectedSearchCategory = null })
+            searchResultsVisible -> ({ searchResultsVisible = false })
+            else -> null
+        }
+        Destination.Library -> selectedLibrarySection?.let {
+            {
+                if (selectedLocalPlaylistId != null) selectedLocalPlaylistId = null
+                else if (selectedLibraryChannel != null) selectedLibraryChannel = null
+                else selectedLibrarySection = null
+            }
+        }
+        else -> null
+    }
+    val toolbarTitle = when (destination) {
+        Destination.Search -> when {
+            selectedSearchCategory != null -> localizedCategoryName(selectedSearchCategory!!)
+            searchResultsVisible -> "Search results"
+            else -> destinationLabel(destination)
+        }
+        Destination.Library -> when {
+            selectedLocalPlaylistId != null -> library.localPlaylists
+                .firstOrNull { it.id == selectedLocalPlaylistId }
+                ?.name
+                ?: selectedLibrarySection?.title().orEmpty()
+            selectedLibraryChannel != null -> selectedLibraryChannel!!
+            selectedLibrarySection != null -> selectedLibrarySection!!.title()
+            else -> destinationLabel(destination)
+        }
+        Destination.Home -> stringResource(Res.string.app_name)
+        Destination.Settings -> destinationLabel(destination)
+    }
     val startPlayback: (Episode) -> Unit = { episode ->
         if (queuedPlayer.capabilities.realPlayback) {
             store.markPlayed(episode)
@@ -207,13 +242,12 @@ fun MolliecasterApp(
                                 titleContentColor = Color.Unspecified,
                                 actionIconContentColor = Color.Unspecified
                             ),
-                            title = {
-                                if (destination == Destination.Home) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.headlineSmall)
+                            title = { Text(toolbarTitle, style = MaterialTheme.typography.headlineSmall, maxLines = 1) },
+                            navigationIcon = {
+                                toolbarBack?.let { onBack ->
+                                    IconButton(onClick = onBack) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                                     }
-                                } else {
-                                    Text(destinationLabel(destination), style = MaterialTheme.typography.headlineSmall)
                                 }
                             },
                             actions = {
@@ -314,7 +348,6 @@ fun MolliecasterApp(
                                         category = category,
                                         visibleCount = visibleSearchCategoryCount,
                                         onVisibleCountChange = { visibleSearchCategoryCount = it },
-                                        onBack = { selectedSearchCategory = null },
                                         onRetry = { scope.launch { store.searchAppleCategory(category) } },
                                         onPodcast = { selectedPodcast = it },
                                         onPreview = { podcast ->
@@ -326,7 +359,6 @@ fun MolliecasterApp(
                                     SearchResultsScreen(
                                         state = library,
                                         query = searchQuery,
-                                        onBack = { searchResultsVisible = false },
                                         onRetry = { scope.launch { store.searchApplePodcasts(searchQuery) } },
                                         onPodcast = { selectedPodcast = it },
                                         onPreview = { podcast ->
@@ -367,11 +399,6 @@ fun MolliecasterApp(
                                     selectedLocalPlaylistId = null
                                 },
                                 onChannel = { selectedLibraryChannel = it },
-                                onBack = {
-                                    if (selectedLocalPlaylistId != null) selectedLocalPlaylistId = null
-                                    else if (selectedLibraryChannel != null) selectedLibraryChannel = null
-                                    else selectedLibrarySection = null
-                                },
                                 onPodcast = { selectedPodcast = it },
                                 onEpisode = { selectedEpisode = it },
                                 onPlay = {

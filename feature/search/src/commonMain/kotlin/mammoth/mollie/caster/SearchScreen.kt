@@ -138,7 +138,6 @@ fun SearchScreen(
 fun SearchResultsScreen(
     state: LibraryState,
     query: String,
-    onBack: () -> Unit,
     onRetry: () -> Unit,
     onPodcast: (Podcast) -> Unit,
     onPreview: (Podcast) -> Unit,
@@ -163,7 +162,6 @@ fun SearchResultsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            LibraryDetailHeader("Search results", stringResource(Res.string.back_to_search), onBack)
             Text(
                 "Results for \"${query.trim()}\"",
                 style = MaterialTheme.typography.bodyMedium,
@@ -209,7 +207,6 @@ fun CategorySearchResultsScreen(
     category: PodcastCategory,
     visibleCount: Int,
     onVisibleCountChange: (Int) -> Unit,
-    onBack: () -> Unit,
     onRetry: () -> Unit,
     onPodcast: (Podcast) -> Unit,
     onPreview: (Podcast) -> Unit,
@@ -222,7 +219,6 @@ fun CategorySearchResultsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            LibraryDetailHeader(localizedCategoryName(category), stringResource(Res.string.back_to_search), onBack)
             Text(
                 stringResource(Res.string.category_results),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

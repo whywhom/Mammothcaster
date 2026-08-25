@@ -46,6 +46,7 @@ import mammoth.mollie.caster.model.EpisodeId
 import mammoth.mollie.caster.model.PlaybackHistory
 import mammoth.mollie.caster.model.LocalAudioFile
 import mammoth.mollie.caster.model.LocalPlaylist
+import mammoth.mollie.caster.model.sortedByFileName
 import mammoth.mollie.caster.model.Podcast
 import mammoth.mollie.caster.model.PodcastCategory
 import mammoth.mollie.caster.model.PodcastId
@@ -441,19 +442,20 @@ class MollieStore(
 
     /** Stores selected-file references; platforms report playback errors if a file is later moved or revoked. */
     fun addLocalPlaylist(playlist: LocalPlaylist) {
-        mutableState.update { it.copy(localPlaylists = it.localPlaylists + playlist) }
+        val sortedPlaylist = playlist.copy(files = playlist.files.sortedByFileName())
+        mutableState.update { it.copy(localPlaylists = it.localPlaylists + sortedPlaylist) }
         database?.let { db -> scope.launch {
             runCatching {
                 db.localPlaylistDao().add(
-                    LocalPlaylistEntity(playlist.id, playlist.name, clock()),
-                    playlist.files.mapIndexed { position, file ->
-                        LocalPlaylistItemEntity(playlist.id, position, file.source, file.displayName, file.mimeType)
+                    LocalPlaylistEntity(sortedPlaylist.id, sortedPlaylist.name, clock()),
+                    sortedPlaylist.files.mapIndexed { position, file ->
+                        LocalPlaylistItemEntity(sortedPlaylist.id, position, file.source, file.displayName, file.mimeType)
                     },
                 )
             }.onFailure { error ->
                 mutableState.update { current ->
                     current.copy(
-                        localPlaylists = current.localPlaylists.filterNot { it.id == playlist.id },
+                        localPlaylists = current.localPlaylists.filterNot { it.id == sortedPlaylist.id },
                         message = error.message ?: "Could not save local playlist",
                     )
                 }
@@ -464,7 +466,9 @@ class MollieStore(
     fun renameLocalPlaylist(playlistId: String, name: String) = updateLocalPlaylist(playlistId) { it.copy(name = name) }
 
     fun addLocalPlaylistFiles(playlistId: String, files: List<LocalAudioFile>) =
-        updateLocalPlaylist(playlistId) { it.copy(files = it.files + files) }
+        updateLocalPlaylist(playlistId) { playlist ->
+            playlist.copy(files = (playlist.files + files).sortedByFileName())
+        }
 
     fun removeLocalPlaylistFile(playlistId: String, index: Int) = updateLocalPlaylist(playlistId) { playlist ->
         playlist.copy(files = playlist.files.filterIndexed { position, _ -> position != index })

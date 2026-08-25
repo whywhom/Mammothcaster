@@ -71,7 +71,7 @@ enum class LibrarySection {
 }
 
 @Composable
-private fun LibrarySection.title(): String = when (this) {
+fun LibrarySection.title(): String = when (this) {
     LibrarySection.Shows -> stringResource(Res.string.shows)
     LibrarySection.Channels -> stringResource(Res.string.channels)
     LibrarySection.Saved -> stringResource(Res.string.saved)
@@ -89,7 +89,6 @@ fun LibraryScreen(
     selectedLocalPlaylistId: String?,
     onSection: (LibrarySection) -> Unit,
     onChannel: (String) -> Unit,
-    onBack: () -> Unit,
     onPodcast: (Podcast) -> Unit,
     onEpisode: (Episode) -> Unit,
     onPlay: (Episode) -> Unit,
@@ -114,7 +113,6 @@ fun LibraryScreen(
         LibraryChannelDetails(
             channel = selectedChannel,
             podcasts = state.podcasts.filter { it.isSubscribed && it.author.trim() == selectedChannel },
-            onBack = onBack,
             onPodcast = onPodcast,
         )
         return
@@ -123,7 +121,6 @@ fun LibraryScreen(
         localPlaylists.firstOrNull { it.id == selectedLocalPlaylistId }?.let { playlist ->
             LocalPlaylistDetails(
                 playlist = playlist,
-                onBack = onBack,
                 onPlay = { onPlayLocalPlaylist(playlist, false) },
                 onShuffle = { onPlayLocalPlaylist(playlist, true) },
                 onPlayItem = { index -> onPlayLocalPlaylistItem(playlist, index) },
@@ -139,7 +136,6 @@ fun LibraryScreen(
         section = selectedSection,
         state = state,
         store = store,
-        onBack = onBack,
         onChannel = onChannel,
         onPodcast = onPodcast,
         onEpisode = onEpisode,
@@ -230,7 +226,6 @@ fun LibrarySectionDetails(
     section: LibrarySection,
     state: LibraryState,
     store: MollieStore,
-    onBack: () -> Unit,
     onChannel: (String) -> Unit,
     onPodcast: (Podcast) -> Unit,
     onEpisode: (Episode) -> Unit,
@@ -258,7 +253,6 @@ fun LibrarySectionDetails(
         .sortedBy { it.first.lowercase() }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { LibraryDetailHeader(section.title(), stringResource(Res.string.back_to_library), onBack) }
         when (section) {
             LibrarySection.Shows -> {
                 if (subscriptions.isEmpty()) item { EmptyHint("Your subscribed podcasts will appear here.") }
@@ -370,7 +364,6 @@ private fun LocalPlaylistNameDialog(
 @Composable
 private fun LocalPlaylistDetails(
     playlist: LocalPlaylist,
-    onBack: () -> Unit,
     onPlay: () -> Unit,
     onShuffle: () -> Unit,
     onPlayItem: (Int) -> Unit,
@@ -386,7 +379,6 @@ private fun LocalPlaylistDetails(
         contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { LibraryDetailHeader(playlist.name, "Back to Local playlists", onBack) }
         item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -398,7 +390,6 @@ private fun LocalPlaylistDetails(
                     Surface(modifier = Modifier.size(112.dp), shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.primaryContainer) {
                         Icon(Icons.Default.MusicNote, null, modifier = Modifier.padding(24.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
-                    Text(playlist.name, style = MaterialTheme.typography.headlineSmall)
                     Text("${playlist.files.size} audio ${if (playlist.files.size == 1) "file" else "files"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(onClick = onPlay, enabled = playlist.files.isNotEmpty()) { Text("Play") }
@@ -479,11 +470,9 @@ fun LibraryChannelRow(author: String, podcasts: List<Podcast>, onClick: () -> Un
 fun LibraryChannelDetails(
     channel: String,
     podcasts: List<Podcast>,
-    onBack: () -> Unit,
     onPodcast: (Podcast) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { LibraryDetailHeader(channel, "Back to Channels", onBack) }
         if (podcasts.isEmpty()) item { EmptyHint("No subscribed shows are available for this channel.") }
         items(podcasts) { PodcastSearchRow(it, onPodcast) }
     }

@@ -12,3 +12,13 @@ data class LocalPlaylist(
     val name: String,
     val files: List<LocalAudioFile>,
 )
+
+/**
+ * Keeps picker results deterministic across platforms. Unicode comparison preserves Chinese filenames
+ * while Latin filenames are ordered case-insensitively from A to Z.
+ */
+fun List<LocalAudioFile>.sortedByFileName(): List<LocalAudioFile> = sortedWith(
+    compareBy<LocalAudioFile> { it.displayName.lowercase() }
+        .thenBy { it.displayName }
+        .thenBy { it.source },
+)

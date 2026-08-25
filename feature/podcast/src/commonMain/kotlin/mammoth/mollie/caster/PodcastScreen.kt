@@ -188,9 +188,12 @@ fun EpisodeRow(
             Text(episode.summary, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { onPlay(episode) }) { Icon(Icons.Default.PlayArrow, "Play ${episode.title}") }
-                if (store != null) {
+                val isSubscribedPodcast = state.podcasts.any { it.id == episode.podcastId && it.isSubscribed }
+                if (store != null && isSubscribedPodcast) {
                     val favorite = episode.id in state.favoriteIds
                     IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) { Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite") }
+                }
+                if (store != null) {
                     val download = state.downloads.firstOrNull { it.episodeId == episode.id }
                     DownloadAction(
                         download = download,
@@ -264,8 +267,10 @@ fun EpisodeDetails(
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { onPlay(episode) }, shape = RoundedCornerShape(24.dp)) { Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(stringResource(Res.string.play)) }
-                    IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) {
-                        Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite")
+                    if (podcast?.isSubscribed == true) {
+                        IconButton(onClick = { store.setFavorite(episode.id, !favorite) }) {
+                            Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (favorite) "Remove favorite" else "Favorite")
+                        }
                     }
                     DownloadAction(
                         download = download,
