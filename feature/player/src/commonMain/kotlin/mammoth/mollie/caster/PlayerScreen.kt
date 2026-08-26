@@ -64,7 +64,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -169,34 +168,17 @@ fun PlayerScreen(
                     Modifier.width(48.dp).height(5.dp)
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.30f), CircleShape),
                 )
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
 
-                PlayerVinylArtwork(
+                NowPlayingCard(
                     episode = episode,
+                    podcastTitle = podcastTitle,
                     isPlaying = state.isPlaying,
                     auraScale = auraScale,
                     artworkRotation = artworkRotation,
                 )
 
-                Spacer(Modifier.height(32.dp))
-                Text(
-                    episode.title,
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    episode.author.ifBlank { podcastTitle.ifBlank { stringResource(Res.string.podcast_episode) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Spacer(Modifier.height(20.dp))
 
                 if (state.errorMessage != null || !playbackEnabled) {
                     Spacer(Modifier.height(16.dp))
@@ -214,7 +196,7 @@ fun PlayerScreen(
                     }
                 }
 
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(12.dp))
                 Slider(
                     value = positionMillis.toFloat(),
                     onValueChange = { player.seekTo(it.toLong()) },
@@ -233,7 +215,7 @@ fun PlayerScreen(
                     Text("-${formatDuration(remainingMillis)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                 }
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                     IconButton(
                         modifier = Modifier.size(58.dp),
@@ -274,7 +256,7 @@ fun PlayerScreen(
                     ) { Icon(Icons.Default.FastForward, stringResource(Res.string.forward_15_seconds), Modifier.size(36.dp)) }
                 }
 
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Box {
                         PlayerUtilityControl(
@@ -346,15 +328,65 @@ fun PlayerScreen(
 }
 
 @Composable
-fun PlayerVinylArtwork(
+private fun NowPlayingCard(
+    episode: Episode,
+    podcastTitle: String,
+    isPlaying: Boolean,
+    auraScale: Float,
+    artworkRotation: Float,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AetherTheme.colors.glassStrong,
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)),
+        shadowElevation = if (AetherTheme.colors.isDark) 12.dp else 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PlayerVinylArtwork(
+                episode = episode,
+                isPlaying = isPlaying,
+                auraScale = auraScale,
+                artworkRotation = artworkRotation,
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(
+                modifier = Modifier.weight(1f).height(112.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = episode.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = podcastTitle.ifBlank { episode.author.ifBlank { stringResource(Res.string.podcast_episode) } },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerVinylArtwork(
     episode: Episode,
     isPlaying: Boolean,
     auraScale: Float,
     artworkRotation: Float,
 ) {
-    Box(Modifier.size(268.dp), contentAlignment = Alignment.Center) {
+    // A compact disc keeps the transport controls visible on shorter desktop windows.
+    // 112dp is approximately one-sixth of the previous disc's visual area.
+    Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
         Surface(
-            modifier = Modifier.size(268.dp).graphicsLayer {
+            modifier = Modifier.size(112.dp).graphicsLayer {
                 scaleX = auraScale
                 scaleY = auraScale
                 alpha = if (isPlaying) 0.42f else 0.24f
@@ -364,12 +396,12 @@ fun PlayerVinylArtwork(
             shadowElevation = if (AetherTheme.colors.isDark) 22.dp else 8.dp,
         ) {}
         Box(
-            modifier = Modifier.size(248.dp).graphicsLayer { rotationZ = if (isPlaying) artworkRotation else 0f }
+            modifier = Modifier.size(104.dp).graphicsLayer { rotationZ = if (isPlaying) artworkRotation else 0f }
                 .clip(CircleShape).background(AetherTheme.colors.actionGradient),
             contentAlignment = Alignment.Center,
         ) {
             if (episode.artworkUrl.isNullOrBlank()) {
-                Icon(Icons.Default.LibraryMusic, null, Modifier.size(92.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.LibraryMusic, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onPrimary)
             } else {
                 AsyncImage(
                     model = episode.artworkUrl,
@@ -380,7 +412,7 @@ fun PlayerVinylArtwork(
             }
         }
         Surface(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(22.dp),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.background,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),

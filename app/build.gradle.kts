@@ -59,9 +59,14 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Molliecaster"
             packageVersion = "1.0.2"
-            // The desktop download gateway uses java.net.http.HttpClient at app startup.
-            // jpackage's default trimmed image omits this module unless it is explicit.
-            modules("java.net.http")
+            // JavaFX is supplied as automatic modules, so jpackage cannot infer every JDK
+            // dependency it needs for the macOS graphics and media toolkits. Keep the full
+            // runtime rather than producing a smaller DMG that cannot play audio.
+            includeAllModules = true
+            modules("java.net.http", "java.desktop", "jdk.unsupported")
+            macOS {
+                iconFile.set(project.file("src/desktopMain/resources/Molliecaster.icns"))
+            }
         }
         buildTypes.release.proguard {
             // Room finds MollieDatabase_Impl and Ktor finds its CIO engine at runtime.

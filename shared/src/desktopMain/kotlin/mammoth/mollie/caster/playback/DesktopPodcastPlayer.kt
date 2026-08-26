@@ -32,6 +32,9 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
         scope.launch {
             while (isActive) {
                 delay(500.milliseconds)
+                // Do not initialize the JavaFX toolkit merely to poll an empty player.
+                // A packaged desktop runtime should only load it when audio is requested.
+                if (player == null) continue
                 onFx {
                     val deadline = state.value.sleepTimerEndsAtMillis
                     if (deadline != null && currentTimeMillis() >= deadline) {
@@ -53,42 +56,44 @@ class DesktopPodcastPlayer(private val mediaFiles: DesktopEpisodeDownloadGateway
             validatePlayableMedia(episode.id.value, enclosure.url)?.let { return fail(episode, it) }
         }
         val source = mediaFiles.playbackSource(episode).ifBlank { return fail(episode, "This episode has no playable audio URL") }
-        onFx {
-            player?.dispose()
-            mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Loading, positionMillis = episode.playbackPositionMillis, speed = state.value.speed)
-            runCatching {
-                MediaPlayer(Media(source)).also { mediaPlayer ->
-                    player = mediaPlayer
-                    mediaPlayer.rate = state.value.speed.toDouble()
-                    mediaPlayer.setOnReady {
-                        val position = episode.playbackPositionMillis.toDouble()
-                        if (position > 0) mediaPlayer.seek(javafx.util.Duration.millis(position))
-                        if (autoPlay) {
-                            mediaPlayer.play()
-                            publish()
-                        } else {
-                            val duration = mediaPlayer.totalDuration.toMillis()
-                                .takeIf { it.isFinite() && it > 0 }
-                                ?.toLong()
-                                ?: 0L
-                            // JavaFX applies seek asynchronously. Keep the requested resume
-                            // position visible until its next engine callback confirms it.
-                            mutableState.value = mutableState.value.copy(
-                                status = PlayerStatus.Ready,
-                                isPlaying = false,
-                                positionMillis = episode.playbackPositionMillis,
-                                bufferedPositionMillis = duration,
-                                durationMillis = duration,
-                            )
+        runCatching {
+            onFx {
+                player?.dispose()
+                mutableState.value = PlayerState(episode = episode, status = PlayerStatus.Loading, positionMillis = episode.playbackPositionMillis, speed = state.value.speed)
+                runCatching {
+                    MediaPlayer(Media(source)).also { mediaPlayer ->
+                        player = mediaPlayer
+                        mediaPlayer.rate = state.value.speed.toDouble()
+                        mediaPlayer.setOnReady {
+                            val position = episode.playbackPositionMillis.toDouble()
+                            if (position > 0) mediaPlayer.seek(javafx.util.Duration.millis(position))
+                            if (autoPlay) {
+                                mediaPlayer.play()
+                                publish()
+                            } else {
+                                val duration = mediaPlayer.totalDuration.toMillis()
+                                    .takeIf { it.isFinite() && it > 0 }
+                                    ?.toLong()
+                                    ?: 0L
+                                // JavaFX applies seek asynchronously. Keep the requested resume
+                                // position visible until its next engine callback confirms it.
+                                mutableState.value = mutableState.value.copy(
+                                    status = PlayerStatus.Ready,
+                                    isPlaying = false,
+                                    positionMillis = episode.playbackPositionMillis,
+                                    bufferedPositionMillis = duration,
+                                    durationMillis = duration,
+                                )
+                            }
                         }
+                        mediaPlayer.setOnPlaying { publish() }
+                        mediaPlayer.setOnPaused { publish() }
+                        mediaPlayer.setOnEndOfMedia { publish(PlayerStatus.Ended) }
+                        mediaPlayer.setOnError { fail(episode, mediaPlayer.error?.message ?: "Desktop media engine could not play this stream") }
                     }
-                    mediaPlayer.setOnPlaying { publish() }
-                    mediaPlayer.setOnPaused { publish() }
-                    mediaPlayer.setOnEndOfMedia { publish(PlayerStatus.Ended) }
-                    mediaPlayer.setOnError { fail(episode, mediaPlayer.error?.message ?: "Desktop media engine could not play this stream") }
-                }
-            }.onFailure { fail(episode, it.message ?: "Desktop media engine could not load this stream") }
-        }
+                }.onFailure { fail(episode, it.message ?: "Desktop media engine could not load this stream") }
+            }
+        }.onFailure { fail(episode, it.message ?: "Desktop media toolkit could not start") }
     }
 
     override fun toggle() = onFx { player?.let { if (it.status == MediaPlayer.Status.PLAYING) it.pause() else it.play() } }

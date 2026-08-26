@@ -2,6 +2,9 @@ package mammoth.mollie.caster
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import mammoth.mollie.caster.data.MollieStore
 import mammoth.mollie.caster.data.database.buildDatabase
 import mammoth.mollie.caster.data.database.databaseBuilder
@@ -10,6 +13,7 @@ import mammoth.mollie.caster.playback.DesktopPodcastPlayer
 import mammoth.mollie.caster.downloads.DesktopEpisodeDownloadGateway
 import kotlinx.coroutines.runBlocking
 import mammoth.mollie.caster.playback.PlayerStatus
+import java.awt.Toolkit
 import kotlin.system.exitProcess
 
 fun main() {
@@ -28,7 +32,9 @@ fun main() {
     )
     val player = DesktopPodcastPlayer(downloads)
     application {
+        val windowState = rememberWindowState(size = defaultDesktopWindowSize())
         Window(
+            state = windowState,
             onCloseRequest = {
                 val finalState = player.state.value
                 finalState.episode
@@ -50,9 +56,15 @@ fun main() {
                 // cleanup so the macOS close button cannot leave a background process alive.
                 exitProcess(0)
             },
-            title = "悦播客",
+            title = "Molliecaster",
         ) {
             MolliecasterApp(store = store, player = player)
         }
     }
 }
+
+private fun defaultDesktopWindowSize(): DpSize = runCatching {
+    Toolkit.getDefaultToolkit().screenSize.let { screen ->
+        DpSize((screen.width / 2).dp, (screen.height / 2).dp)
+    }
+}.getOrDefault(DpSize(960.dp, 640.dp))
