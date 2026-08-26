@@ -1,3 +1,11 @@
+# The desktop release bundle contains Kotlin, Compose, Coil, Ktor, JavaFX, and
+# JNI-backed SQLite. ProGuard transformations have produced invalid coroutine
+# bytecode and removed runtime-loaded image components. Keep release behavior
+# identical to the debug distribution; size reduction is not worth breaking
+# playback or remote artwork.
+-dontshrink
+-dontoptimize
+
 # Room resolves generated database implementations by their original class name.
 # Keep this implementation and its constructors when creating a desktop release.
 -keep class mammoth.mollie.caster.data.database.MollieDatabase_Impl { *; }
