@@ -1,0 +1,25 @@
+name: Windows
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Windows installer
+      runner: windows-2025
+      command: ./gradlew.bat --stacktrace :app:packageReleaseMsi
+      artifact_name: molliecaster-windows
+      artifact_path: app/build/compose/binaries/main-release/msi/*.msi

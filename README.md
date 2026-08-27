@@ -2,6 +2,26 @@
 
 Molliecaster is a Compose Multiplatform podcast client migrated from the product ideas in Jetcaster. The application namespace is `mammoth.mollie.caster` and the project targets Android, iOS, desktop JVM and Kotlin/Wasm.
 
+[![Android](https://github.com/whywhom/Mammothcaster/actions/workflows/android.yml/badge.svg?event=push)](https://github.com/whywhom/Mammothcaster/actions/workflows/android.yml)
+[![iOS](https://github.com/whywhom/Mammothcaster/actions/workflows/ios.yml/badge.svg?event=push)](https://github.com/whywhom/Mammothcaster/actions/workflows/ios.yml)
+[![macOS](https://github.com/whywhom/Mammothcaster/actions/workflows/macos.yml/badge.svg?event=push)](https://github.com/whywhom/Mammothcaster/actions/workflows/macos.yml)
+[![Windows](https://github.com/whywhom/Mammothcaster/actions/workflows/windows.yml/badge.svg?event=push)](https://github.com/whywhom/Mammothcaster/actions/workflows/windows.yml)
+[![Linux](https://github.com/whywhom/Mammothcaster/actions/workflows/linux.yml/badge.svg?event=push)](https://github.com/whywhom/Mammothcaster/actions/workflows/linux.yml)
+[![Web](https://github.com/whywhom/Mammothcaster/actions/workflows/web.yml/badge.svg?event=push)](https://github.com/whywhom/Mammothcaster/actions/workflows/web.yml)
+
+## Download the latest release
+
+| Target | Download | Notes |
+|---|---|---|
+| Android | [Download preview APK](https://github.com/whywhom/Mammothcaster/releases/latest/download/Molliecaster-Android-debug.apk) | Installable debug build; the release also contains an unsigned AAB for store signing |
+| iOS | [Download Simulator app](https://github.com/whywhom/Mammothcaster/releases/latest/download/Molliecaster-iOS-Simulator.zip) | Apple-silicon iOS Simulator build, not an App Store IPA |
+| macOS | [Download DMG](https://github.com/whywhom/Mammothcaster/releases/latest/download/Molliecaster-macOS.dmg) | Apple silicon; unsigned and not notarized |
+| Windows | [Download MSI](https://github.com/whywhom/Mammothcaster/releases/latest/download/Molliecaster-Windows.msi) | Unsigned installer |
+| Linux | [Download DEB](https://github.com/whywhom/Mammothcaster/releases/latest/download/Molliecaster-Linux.deb) | Debian/Ubuntu package |
+| Web | [Download web bundle](https://github.com/whywhom/Mammothcaster/releases/latest/download/Molliecaster-Web.zip) | Static Kotlin/Wasm distribution |
+
+Downloads become available after a `v*` tag successfully completes the [Release workflow](https://github.com/whywhom/Mammothcaster/actions/workflows/release.yml). See [all releases](https://github.com/whywhom/Mammothcaster/releases).
+
 ## Current features
 
 - Discover podcasts through Apple Podcasts search, RSS previews, the Apple storefront Top 10, and 50 browse categories (including Apple categories such as Books, Parenting, Business, Education, News, and Society & Culture). Recommendations are re-ranked locally from subscriptions, favourites, playback history, and category affinity.
@@ -66,15 +86,22 @@ Open `iosApp/iosApp.xcodeproj` for iOS.
 
 ## Continuous integration
 
-GitHub Actions builds each platform on a compatible hosted runner:
+Each platform has its own GitHub Actions workflow so its README badge reports that target's status independently. Builds run on compatible hosted runners:
 
 | Runner | Targets |
 |---|---|
-| Ubuntu 24.04 | Shared tests, web tests, Android AAB, Kotlin/Wasm distribution, and Debian package |
+| Ubuntu 24.04 | Shared tests, web tests, Android preview APK/AAB, Kotlin/Wasm distribution, and Debian package |
 | Windows Server 2025 | Windows MSI installer |
 | macOS 26 | macOS DMG and unsigned iOS Simulator app |
 
-The workflow runs for pushes, pull requests, and manual dispatches. Successful build products are retained as workflow artifacts for 14 days. Release signing, Apple notarization, and store upload remain separate credentialed release steps.
+The build workflows run for branch pushes, pull requests, and manual dispatches. Successful products remain available from each workflow run for 14 days. Pushing a `v*` tag builds every target and attaches stable filenames to a GitHub Release, which powers the download links above. Release signing, Apple notarization, and store upload remain separate credentialed release steps.
+
+After updating the application versions, publish a release with a version tag:
+
+```bash
+git tag v1.0.3
+git push origin v1.0.3
+```
 
 Check the Desktop packaging runtime and create a macOS package with:
 

@@ -1,0 +1,25 @@
+name: Linux
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Debian package
+      runner: ubuntu-24.04
+      command: ./gradlew --stacktrace :app:packageReleaseDeb
+      artifact_name: molliecaster-linux
+      artifact_path: app/build/compose/binaries/main-release/deb/*.deb
