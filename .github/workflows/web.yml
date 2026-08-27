@@ -3,9 +3,7 @@ name: Web
 on:
   push:
     branches:
-      - "**"
-  pull_request:
-  workflow_dispatch:
+      - main
 
 permissions:
   contents: read

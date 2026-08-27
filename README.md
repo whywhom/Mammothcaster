@@ -94,7 +94,7 @@ Each platform has its own GitHub Actions workflow so its README badge reports th
 | Windows Server 2025 | Windows MSI installer |
 | macOS 26 | macOS DMG and unsigned iOS Simulator app |
 
-The build workflows run for branch pushes, pull requests, and manual dispatches. Successful products remain available from each workflow run for 14 days. Pushing a `v*` tag builds every target and attaches stable filenames to a GitHub Release, which powers the download links above. Release signing, Apple notarization, and store upload remain separate credentialed release steps.
+The build workflows run only after code is pushed or merged into `main`. Successful products remain available from each workflow run for 14 days. Pushing a `v*` tag builds every target and attaches stable filenames to a GitHub Release, which powers the download links above. Release signing, Apple notarization, and store upload remain separate credentialed release steps.
 
 After updating the application versions, publish a release with a version tag:
 
