@@ -61,6 +61,7 @@ Convert the Android-only `../Jetcaster/` sample into a Kotlin and Compose Multip
 - Coil for multiplatform artwork loading
 - Android Media3 for Android playback, media session, notification/lock-screen control, and downloads
 - Shared player/download contracts with platform adapters for iOS, web, and desktop because Media3 is Android-only
+- GitHub Actions runners on Ubuntu, Windows, and macOS for platform-specific builds and native packaging
 - Proposed non-Android engines: AVPlayer/AVAudioSession on iOS, browser HTML media + Media Session APIs on web, and a JVM desktop media adapter selected during the foundation milestone
 
 ## Proposed architecture

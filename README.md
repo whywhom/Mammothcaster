@@ -64,6 +64,18 @@ Run the Desktop and Web applications with:
 
 Open `iosApp/iosApp.xcodeproj` for iOS.
 
+## Continuous integration
+
+GitHub Actions builds each platform on a compatible hosted runner:
+
+| Runner | Targets |
+|---|---|
+| Ubuntu 24.04 | Shared tests, web tests, Android AAB, Kotlin/Wasm distribution, and Debian package |
+| Windows Server 2025 | Windows MSI installer |
+| macOS 26 | macOS DMG and unsigned iOS Simulator app |
+
+The workflow runs for pushes, pull requests, and manual dispatches. Successful build products are retained as workflow artifacts for 14 days. Release signing, Apple notarization, and store upload remain separate credentialed release steps.
+
 Check the Desktop packaging runtime and create a macOS package with:
 
 ```bash
@@ -103,14 +115,14 @@ Artifacts are placed under `androidApp/build/outputs/bundle/release/` and `andro
 
 ### iOS
 
-Open `iosApp/iosApp.xcodeproj` in Xcode, select the `iosApp` scheme and a Release configuration, then use **Product → Archive**. Configure the production Apple Developer team, bundle identifier, provisioning profile, and distribution certificate before exporting for TestFlight or the App Store.
+Open `iosApp/iosApp.xcodeproj` in Xcode, select the `Molliecaster` scheme and a Release configuration, then use **Product → Archive**. Configure the production Apple Developer team, bundle identifier, provisioning profile, and distribution certificate before exporting for TestFlight or the App Store.
 
 For a command-line archive on macOS, use the same signing setup:
 
 ```bash
 xcodebuild \
   -project iosApp/iosApp.xcodeproj \
-  -scheme iosApp \
+  -scheme Molliecaster \
   -configuration Release \
   -archivePath build/ios/Molliecaster.xcarchive \
   archive
@@ -129,7 +141,7 @@ Compose Desktop packages the native installer format supported by the host opera
 ./gradlew :app:packageReleaseDeb  # Debian/Ubuntu Linux
 ```
 
-Packages are written below `shared/build/compose/binaries/main-release/`. Code-sign and notarize the macOS package, and sign the Windows installer, with credentials managed outside this repository.
+Packages are written below `app/build/compose/binaries/main-release/`. Code-sign and notarize the macOS package, and sign the Windows installer, with credentials managed outside this repository.
 
 ### Web
 
@@ -139,4 +151,4 @@ Create the optimized Kotlin/Wasm browser distribution with:
 ./gradlew :app:wasmJsBrowserDistribution
 ```
 
-Deploy the generated static files from `shared/build/dist/wasmJs/productionExecutable/` behind HTTPS. Configure a trusted RSS fetch proxy for feeds without CORS support; never expose Podcast Index credentials in client-side assets.
+Deploy the generated static files from `app/build/dist/wasmJs/productionExecutable/` behind HTTPS. Configure a trusted RSS fetch proxy for feeds without CORS support; never expose Podcast Index credentials in client-side assets.

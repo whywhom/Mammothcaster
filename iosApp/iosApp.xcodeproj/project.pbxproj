@@ -135,7 +135,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\n\n# Gradle needs JDK 21 to build MolliecasterApp before Swift compiles.\nexport JAVA_HOME=\"/Users/wua4/Applications/Android Studio.app/Contents/jbr/Contents/Home\"\n\nif [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  echo \"error: JDK 21 was not found at $JAVA_HOME/bin/java.\" >&2\n  exit 1\nfi\n\n\"$JAVA_HOME/bin/java\" -version\n./gradlew :app:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "cd \"$SRCROOT/..\"\n\n# Gradle needs JDK 21 to build MolliecasterApp before Swift compiles. Honour\n# JAVA_HOME from CI or the calling shell, then try common macOS installations.\nif [ -z \"${JAVA_HOME:-}\" ] || [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null || true)\nfi\nif [ -z \"${JAVA_HOME:-}\" ] || [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  for candidate in \"$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home\" \"/Applications/Android Studio.app/Contents/jbr/Contents/Home\"; do\n    if [ -x \"$candidate/bin/java\" ]; then\n      JAVA_HOME=\"$candidate\"\n      break\n    fi\n  done\nfi\nexport JAVA_HOME\n\nif [ -z \"${JAVA_HOME:-}\" ] || [ ! -x \"$JAVA_HOME/bin/java\" ]; then\n  echo \"error: JDK 21 was not found. Set JAVA_HOME before building the iOS app.\" >&2\n  exit 1\nfi\n\n\"$JAVA_HOME/bin/java\" -version\n./gradlew :app:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
