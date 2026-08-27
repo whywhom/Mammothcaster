@@ -1,0 +1,4 @@
+interface:
+  display_name: "Molliecaster KMP Migration"
+  short_description: "Plan and execute Jetcaster-to-KMP migration"
+  default_prompt: "Use $migrate-jetcaster-to-kmp to migrate Jetcaster into the Molliecaster Kotlin Multiplatform project with platform build gates."

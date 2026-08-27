@@ -1,0 +1,27 @@
+name: Android
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Android app
+      runner: ubuntu-24.04
+      command: ./gradlew --stacktrace :androidApp:assembleDebug :androidApp:bundleRelease
+      artifact_name: molliecaster-android
+      artifact_path: |
+        androidApp/build/outputs/apk/debug/*.apk
+        androidApp/build/outputs/bundle/release/*.aab

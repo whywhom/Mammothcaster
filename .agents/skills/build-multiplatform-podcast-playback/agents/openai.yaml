@@ -1,0 +1,4 @@
+interface:
+  display_name: "Podcast Playback"
+  short_description: "Build playback, background control, and downloads"
+  default_prompt: "Use $build-multiplatform-podcast-playback to implement Molliecaster playback, Media3 integration, platform adapters, sleep timer, and downloads."

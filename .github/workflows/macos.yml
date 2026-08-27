@@ -1,0 +1,25 @@
+name: macOS
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: macOS disk image
+      runner: macos-26
+      command: ./gradlew --stacktrace :app:packageReleaseDmg
+      artifact_name: molliecaster-macos
+      artifact_path: app/build/compose/binaries/main-release/dmg/*.dmg

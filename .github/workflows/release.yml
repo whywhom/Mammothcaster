@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Release tests
+      runner: ubuntu-24.04
+      command: ./gradlew --stacktrace :shared:desktopTest :shared:wasmJsBrowserTest
+
+  android:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Android release assets
+      runner: ubuntu-24.04
+      command: ./gradlew --stacktrace :androidApp:assembleDebug :androidApp:bundleRelease
+      artifact_name: molliecaster-android
+      artifact_path: |
+        androidApp/build/outputs/apk/debug/*.apk
+        androidApp/build/outputs/bundle/release/*.aab
+
+  web:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Web release asset
+      runner: ubuntu-24.04
+      command: ./gradlew --stacktrace :app:wasmJsBrowserDistribution
+      artifact_name: molliecaster-web
+      artifact_path: app/build/dist/wasmJs/productionExecutable/
+
+  linux:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Linux release asset
+      runner: ubuntu-24.04
+      command: ./gradlew --stacktrace :app:packageReleaseDeb
+      artifact_name: molliecaster-linux
+      artifact_path: app/build/compose/binaries/main-release/deb/*.deb
+
+  windows:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: Windows release asset
+      runner: windows-2025
+      command: ./gradlew.bat --stacktrace :app:packageReleaseMsi
+      artifact_name: molliecaster-windows
+      artifact_path: app/build/compose/binaries/main-release/msi/*.msi
+
+  macos:
+    uses: ./.github/workflows/_gradle-build.yml
+    with:
+      job_name: macOS release asset
+      runner: macos-26
+      command: ./gradlew --stacktrace :app:packageReleaseDmg
+      artifact_name: molliecaster-macos
+      artifact_path: app/build/compose/binaries/main-release/dmg/*.dmg
+
+  ios:
+    uses: ./.github/workflows/_ios-build.yml
+
+  publish:
+    name: Publish GitHub Release
+    needs:
+      - tests
+      - android
+      - web
+      - linux
+      - windows
+      - macos
+      - ios
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-inputs
+
+      - name: Prepare stable release filenames
+        run: |
+          mkdir -p release-assets
+          find release-inputs/molliecaster-android -name '*-debug.apk' -exec cp {} release-assets/Molliecaster-Android-debug.apk \;
+          find release-inputs/molliecaster-android -name '*.aab' -exec cp {} release-assets/Molliecaster-Android.aab \;
+          find release-inputs/molliecaster-linux -name '*.deb' -exec cp {} release-assets/Molliecaster-Linux.deb \;
+          find release-inputs/molliecaster-windows -name '*.msi' -exec cp {} release-assets/Molliecaster-Windows.msi \;
+          find release-inputs/molliecaster-macos -name '*.dmg' -exec cp {} release-assets/Molliecaster-macOS.dmg \;
+          find release-inputs/molliecaster-ios-simulator -name '*.zip' -exec cp {} release-assets/Molliecaster-iOS-Simulator.zip \;
+          (cd release-inputs/molliecaster-web && zip -q -r ../../release-assets/Molliecaster-Web.zip .)
+          test "$(find release-assets -maxdepth 1 -type f | wc -l | tr -d ' ')" = "7"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --generate-notes --title "Molliecaster $GITHUB_REF_NAME"
+          fi

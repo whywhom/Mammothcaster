@@ -1,0 +1,4 @@
+interface:
+  display_name: "Podcast Data Layer"
+  short_description: "Build RSS, Room, search, and OPML workflows"
+  default_prompt: "Use $build-podcast-data-layer to implement and validate Molliecaster RSS, persistence, search, history, and OPML data flows."

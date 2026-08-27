@@ -1,127 +1,127 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
+import org.gradle.jvm.toolchain.JvmVendorSpec
+
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.compose)
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kmp.library)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.compose.multiplatform)
 }
 
-android {
-    namespace = "com.mammoth.podcast"
-    compileSdk = 35
+// Android Studio's bundled JBR can compile the project but does not include
+// jpackage. Resolve a complete JDK only when a native desktop package is asked
+// for, and still permit a release machine to provide a specific JDK explicitly.
+val desktopPackagingTaskNames = setOf(
+    "checkRuntime",
+    "suggestRuntimeModules",
+    "createRuntimeImage",
+    "createDistributable",
+    "runDistributable",
+    "packageDistributionForCurrentOS",
+    "packageDmg",
+    "packageMsi",
+    "packageDeb",
+    "packageReleaseDmg",
+    "packageReleaseMsi",
+    "packageReleaseDeb",
+    "notarizeDmg",
+)
+val desktopPackagingRequested = gradle.startParameter.taskNames.any { task ->
+    val name = task.substringAfterLast(':')
+    name in desktopPackagingTaskNames ||
+        (name.startsWith("package") && listOf("Dmg", "Msi", "Deb", "DistributionForCurrentOS").any(name::endsWith)) ||
+        (name.startsWith("notarize") && name.endsWith("Dmg"))
+}
+val desktopPackagingJavaHome = if (desktopPackagingRequested) {
+    providers.gradleProperty("molliecaster.desktop.javaHome").orNull
+        ?: extensions.getByType(JavaToolchainService::class.java)
+            .compilerFor {
+                languageVersion.set(JavaLanguageVersion.of(21))
+                vendor.set(JvmVendorSpec.ADOPTIUM)
+            }
+            .get()
+            .metadata
+            .installationPath
+            .asFile
+            .absolutePath
+} else {
+    null
+}
 
-    defaultConfig {
-        applicationId = "com.mammoth.podcast"
-        minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.1"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+compose.desktop {
+    application {
+        mainClass = "mammoth.mollie.caster.MainKt"
+        desktopPackagingJavaHome?.let { javaHome = it }
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "Molliecaster"
+            packageVersion = "1.0.2"
+            // JavaFX is supplied as automatic modules, so jpackage cannot infer every JDK
+            // dependency it needs for the macOS graphics and media toolkits. Keep the full
+            // runtime rather than producing a smaller DMG that cannot play audio.
+            includeAllModules = true
+            modules("java.net.http", "java.desktop", "jdk.unsupported")
+            macOS {
+                iconFile.set(project.file("src/desktopMain/resources/Molliecaster.icns"))
+            }
+        }
+        buildTypes.release.proguard {
+            // Room finds MollieDatabase_Impl and Ktor finds its CIO engine at runtime.
+            // Keep their reflective entry points when preparing a shrinked release bundle.
+            configurationFiles.from(project(":shared").file("proguard-rules.pro"))
         }
     }
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true  // Jetpack Compose
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.2"
-    }
-
-    packagingOptions {
-        exclude("rome-utils-1.18.0.jar")
-    }
 }
 
-dependencies {
-    coreLibraryDesugaring(libs.core.jdk.desugaring)
+kotlin {
+    android {
+        namespace = "mammoth.mollie.caster.app"
+        compileSdk = 36
+        minSdk = 23
+    }
+    iosArm64()
+    iosSimulatorArm64()
+    targets.withType<KotlinNativeTarget>().configureEach {
+        binaries.framework {
+            baseName = "MolliecasterApp"
+            isStatic = true
+        }
+    }
+    jvm("desktop")
+    wasmJs {
+        outputModuleName = "molliecaster"
+        browser()
+        binaries.executable()
+    }
+    applyDefaultHierarchyTemplate()
 
-    val composeBom = platform(libs.androidx.compose.bom)
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
+    sourceSets {
+        commonMain.dependencies {
+                implementation(project(":shared"))
+                implementation(project(":feature:home"))
+                implementation(project(":feature:search"))
+                implementation(project(":feature:library"))
+                implementation(project(":feature:podcast"))
+                implementation(project(":feature:player"))
+                implementation(project(":feature:settings"))
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.ui)
+            implementation(compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.coil.compose)
+        }
+        named("desktopMain") {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+            }
+        }
+    }
 
-    implementation(libs.kotlin.stdlib)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.collections.immutable)
-
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.palette)
-
-    // Compose
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.material.iconsExtended)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material3.adaptive)
-    implementation(libs.androidx.compose.material3.adaptive.layout)
-    implementation(libs.androidx.compose.material3.adaptive.navigation)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.ui.graphics)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
-    implementation(libs.androidx.lifecycle.runtime)
-    implementation(libs.androidx.lifecycle.viewModelCompose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.window)
-    implementation(libs.androidx.window.core)
-
-    implementation(libs.accompanist.adaptive)
-
-    implementation(libs.coil.kt.compose)
-
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.glance.material3)
-    implementation(libs.androidx.glance)
-
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.espresso.core)
-    androidTestImplementation(composeBom)
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    // Networking
-    implementation(libs.okhttp3)
-    implementation(libs.okhttp.logging)
-
-    // Database
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-
-    implementation(libs.rometools.rome)
-    implementation(libs.rometools.modules)
-
-    // Exoplayer
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.ui)
-    implementation(libs.androidx.media3.common)
-    implementation(libs.androidx.media3.session)
-    implementation(libs.androidx.media)
-
-    // Testing
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
+    jvmToolchain(21)
 }
